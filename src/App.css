@@ -1,6 +1,10 @@
-/* #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-} */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.nav-link {
+  @apply rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all;
+}
+.sub-heading {
+  @apply text-fuchsia-900 font-extrabold underline text-2xl;
+}
