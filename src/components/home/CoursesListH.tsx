@@ -64,7 +64,7 @@ const CourseList: React.FC = () => {
       <div className="flex justify-between w-full max-w-6xl mb-4">
         <p className='sub-heading'>Courses</p>
         <button
-          className={`bg-white rounded-full p-2 shadow-md hover:bg-gray-300 transition-colors duration-300 ease-in-out`}
+          className={`bg-fuchsia-950 bg-opacity-30 hover:bg-opacity-80 text-white p-2 rounded-full shadow-md transition-colors duration-300 ease-in-out`}
           onClick={handleNextClick}
         >
           <ChevronRight className="w-6 h-6" />

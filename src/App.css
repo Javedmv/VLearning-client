@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 .nav-link {
-  @apply rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all;
+  @apply rounded-full py-1 px-4 hover:bg-fuchsia-950 hover:text-white transition-all;
 }
 .sub-heading {
-  @apply text-fuchsia-900 font-extrabold underline text-2xl;
+  @apply text-fuchsia-950 font-extrabold underline text-2xl;
 }

@@ -1,12 +1,13 @@
 import React from "react";
 import GoogleIcon from "../../assets/icons8-google.svg";
 import LoginIcon from "../../assets/loginImg.jpeg";
+import { Link } from "react-router-dom";
 
 const Login: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen">
       {/* Left Section */}
-      <div className="flex-1 bg-fuchsia-900 text-white flex flex-col items-center justify-center p-4 md:p-8">
+      <div className="hidden sm:flex-1 sm:flex sm:bg-fuchsia-900 sm:text-white sm:flex-col sm:items-center sm:justify-center sm:p-4 sm:md:p-8">
         <div className="text-center">
           <img
             src={LoginIcon}
@@ -18,6 +19,7 @@ const Login: React.FC = () => {
           </p>
         </div>
       </div>
+
 
       {/* Right Section */}
       <div className="flex-1 bg-pink-100 flex items-center justify-center p-4 md:p-8">
@@ -86,12 +88,12 @@ const Login: React.FC = () => {
 
               <p className="mt-3 text-center text-gray-600">
                 Don’t have an account?{" "}
-                <a
-                  href="#"
+                <Link
+                  to="/signup"
                   className="text-fuchsia-700 font-semibold hover:text-fuchsia-900 hover:underline"
                 >
                   Sign Up
-                </a>
+                </Link>
               </p>
             </form>
           </div>

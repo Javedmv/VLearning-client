@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,7 +14,8 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center">
           {/* Logo Section */}
-          <div className="flex-shrink-0">
+          <div className="flex items-center spaces-x-2">
+            <GraduationCap className="w-10 h-10 text-fuchsia-950" />
             <span className="text-4xl font-bold text-fuchsia-950">
               VLearning<span className="text-pink-600">.</span>
             </span>
@@ -20,12 +23,12 @@ const Navbar: React.FC = () => {
 
           {/* Navigation Links - Desktop */}
           <div className="hidden lg:flex items-center space-x-6">
-            <a
-              href="#"
+            <Link
+              to="/"
               className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
             >
               Home
-            </a>
+            </Link>
             <a
               href="#"
               className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
@@ -54,12 +57,16 @@ const Navbar: React.FC = () => {
 
           {/* Auth Buttons - Hidden when screen size reaches 769px */}
           <div className="hidden lg:flex items-center space-x-4">
-            <button className="px-6 py-2 bg-fuchsia-700 text-white rounded-full hover:bg-fuchsia-900 transition duration-300 ease-in-out">
-              Login
-            </button>
-            <button className="px-6 py-2 bg-white text-fuchsia-900 border-2 border-purple-600 rounded-full hover:bg-gray-300 transition duration-300 ease-in-out">
+            <Link to="/login">
+              <button className="px-6 py-2 bg-fuchsia-700 text-white rounded-full hover:bg-fuchsia-900 transition duration-300 ease-in-out">
+                Login
+              </button>
+            </Link>
+            <Link to="/signup">
+              <button className="px-6 py-2 bg-white text-fuchsia-900 border-2 border-purple-600 rounded-full hover:bg-gray-300 transition duration-300 ease-in-out">
               Signup
-            </button>
+              </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button - Shown when screen size is 769px or below */}
