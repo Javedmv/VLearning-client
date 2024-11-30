@@ -1,9 +1,10 @@
-import { createBrowserRouter ,Navigate } from 'react-router-dom';
-import './App.css'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import './App.css';
+import future from './types/createBrowserConfig';
 
-import LandingPage from './pages/common/landingPage'
-import Login from './pages/common/login' 
-import Signup from './pages/common/signup'
+import LandingPage from './pages/common/landingPage';
+import Login from './pages/common/login';
+import Signup from './pages/common/signup';
 import Dashboard from './pages/admin/Dashboard';
 import Students from './pages/admin/Students';
 import DashboardHome from './pages/admin/DashboardHome';
@@ -13,67 +14,117 @@ import Messages from './pages/admin/Messages';
 import Schedule from './pages/admin/Schedule';
 import Analytics from './pages/admin/Analytics';
 import Settings from './pages/admin/Settings';
+import UserForm from './pages/user/UserForm';
+import { AppDispatch, RootState } from './redux/store';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { getUserDataFirst } from './redux/actions/user/userAction';
+
+// Role-Based Redirect Component
+const RoleBasedRedirect = ({ user }: { user: any }) => {
+  console.log(user, "user in rolebasedrouting")
+  if (!user) return null; // Do nothing if user isn't loaded yet
+
+  if (user.isNewUser) return <Navigate to="/user-form" replace />; // Redirect new users to /user-form
+
+  if (user.role === 'admin') return <Navigate to="/admin" replace />;
+  return null;
+};
 
 // Define the routes using createBrowserRouter
-const router = createBrowserRouter([
-  {
-    path:'',
-    element:<LandingPage/>
-  },
-  {
-    path:'/login',
-    element:<Login/>
-  },
-  {
-    path:"/signup",
-    element:<Signup/>
-  },
-  {
-    path: '/admin',
-    element: <Dashboard />,
-    children: [
+const router = (user: any) =>
+  createBrowserRouter(
+    [
       {
         path: '',
-        element: <DashboardHome />,
+        element: (
+          <>
+            <RoleBasedRedirect user={user} />
+            <LandingPage />
+          </>
+        ),
       },
       {
-        path: 'students',
-        element: <Students />,
+        path: '/login',
+        element: user ? <Navigate to="/" replace /> : <Login />,
       },
       {
-        path: 'instructors',
-        element: <Instructors />,
+        path: '/signup',
+        element: user ? <Navigate to="/" replace /> : <Signup />,
       },
       {
-        path: 'courses',
-        element: <Courses />,
+        path: '/user-form',
+        element:
+          user && user.isNewUser ? (
+            <UserForm />
+          ) : (
+            <Navigate to="/" replace />
+          ), // Restrict access to /user-form
       },
       {
-        path: 'messages',
-        element: <Messages />,
-      },
-      {
-        path: 'schedule',
-        element: <Schedule />,
-      },
-      {
-        path: 'analytics',
-        element: <Analytics />,
-      },
-      {
-        path: 'settings',
-        element: <Settings />,
-      },
-      {
-        path: 'logout',
-        element: <Navigate to="/" replace />,
-      },
-      {
-        path: '*',
-        element: <Navigate to="/admin" replace />,
+        path: '/admin',
+        element: user?.role === 'admin' ? <Dashboard /> : <Navigate to="/" replace />,
+        children: [
+          {
+            path: '',
+            element: <DashboardHome />,
+          },
+          {
+            path: 'students',
+            element: <Students />,
+          },
+          {
+            path: 'instructors',
+            element: <Instructors />,
+          },
+          {
+            path: 'courses',
+            element: <Courses />,
+          },
+          {
+            path: 'messages',
+            element: <Messages />,
+          },
+          {
+            path: 'schedule',
+            element: <Schedule />,
+          },
+          {
+            path: 'analytics',
+            element: <Analytics />,
+          },
+          {
+            path: 'settings',
+            element: <Settings />,
+          },
+          {
+            path: 'logout',
+            element: <Navigate to="/" replace />,
+          },
+          {
+            path: '*',
+            element: <Navigate to="/admin" replace />,
+          },
+        ],
       },
     ],
-  },
-]);
+    // this is given to remove the warning in browser
+    { future }
+  );
 
-export default router;
+const App = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.user);
+  console.log(user, 'user in app.tsx');
+
+  useEffect(() => {
+    if (!user) {
+      dispatch(getUserDataFirst());
+    }
+  }, [user, dispatch]);
+
+  return <RouterProvider router={router(user)} />;
+};
+
+export default App;
+

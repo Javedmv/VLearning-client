@@ -1,129 +1,159 @@
-import React, { useState, useRef, useEffect } from "react";
-import GoogleIcon from "../../assets/icons8-google.svg"
-import Icon from "../../assets/signupIcon.avif"
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import GoogleIcon from "../../assets/icons8-google.svg";
+import Icon from "../../assets/signupIcon.avif";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "../../redux/store";
+import { signUpUser } from "../../redux/actions/user/userAction";
+import { commonRequest } from "../../common/api";
+import { config } from "../../common/configurations";
+import { URL } from "../../common/api";
+import OtpModal from '../../components/user/otpModal';
+import toast from "react-hot-toast";
+
+// interface - form values
+interface SignupFormValues {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  role: string;
+  otp: string;
+}
+
+// validation schema Yup
+const validationSchema = Yup.object().shape({
+  username: Yup.string()
+    .required('Username is required')
+    .min(3, 'Username must be at least 3 characters'),
+  email: Yup.string()
+    .email('Invalid email address')
+    .required('Email is required'),
+  password: Yup.string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref('password')], 'Passwords must match')
+    .required('Confirm password is required'),
+  role: Yup.string()
+    .required('Please select a role')
+});
 
 const Signup: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('');
-  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const dispatch = useDispatch<AppDispatch>();
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState<string | null>(null);
-  const [timer, setTimer] = useState(120); // 2 minutes in seconds
+  const [timer, setTimer] = useState(30);
   const [isExpired, setIsExpired] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const [lastSubmittedValues, setLastSubmittedValues] = useState<SignupFormValues | null>(null);
+  const {user} = useSelector((state:RootState) => state.user)
 
-  const validateUsername = (value: string) => {
-    if (!value.trim()) return 'Username is required';
-    return '';
+  const initialValues: SignupFormValues = {
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: '',
+    otp: '',
   };
 
-  const validateEmail = (value: string) => {
-    if (!value.trim()) return 'Email is required';
-    if (!/\S+@\S+\.\S+/.test(value)) return 'Email is invalid';
-    return '';
-  };
-
-  const validatePassword = (value: string) => {
-    if (!value) return 'Password is required';
-    if (value.length < 6) return 'Password must be at least 6 characters';
-    return '';
-  };
-
-  const validateConfirmPassword = (password: string, confirmPassword: string) => {
-    if (password !== confirmPassword) return 'Passwords do not match';
-    return '';
-  };
-
-  const validateRole = (value: string) => {
-    if (!value) return 'Please select a role';
-    return '';
-  };
-
-  const validateForm = () => {
-    const errors: { [key: string]: string } = {};
-    const usernameError = validateUsername(username);
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
-    const confirmPasswordError = validateConfirmPassword(password, confirmPassword);
-    const roleError = validateRole(role);
-
-    if (usernameError) errors.username = usernameError;
-    if (emailError) errors.email = emailError;
-    if (passwordError) errors.password = passwordError;
-    if (confirmPasswordError) errors.confirmPassword = confirmPasswordError;
-    if (roleError) errors.role = roleError;
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSignup = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setShowOtpModal(true);
-    }
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (isNaN(Number(value))) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    setOtpError(null);
-
-    if (value !== '' && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpSubmit = () => {
-    const otpString = otp.join('');
-    if (otpString.length !== 6) {
-      setOtpError('Please enter a 6-digit OTP');
-    } else {
-      // Here you would typically send the OTP to your server for verification
-      console.log('OTP submitted:', otpString);
-      console.log('User signed up:', { username, email, password, role });
-      setShowOtpModal(false);
-      // Reset form fields after successful signup
-      setUsername('');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setRole('');
-    }
-  };
-
-  const resetOTP = () => {
-    setOtp(['', '', '', '', '', '']);
-    setOtpError(null);
-    setTimer(120);
-    setIsExpired(false);
-    inputRefs.current[0]?.focus();
-  };
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (showOtpModal) {
-      inputRefs.current[0]?.focus();
-      resetOTP();
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+    if(user){
+      navigate('/user-form')
+      toast.success("Signup successful! Redirecting...");
     }
-  }, [showOtpModal]);
+
+    // need to clearout the error
+    // return () => {
+    //   dispatch()
+    // }
+  },[user])
+
+
+  const handleSubmit = async (values: SignupFormValues) => {
+    setOtp(['', '', '', '', '', '']);
+    setOtpError(null);
+    setTimer(30);
+    setIsExpired(false);
+    
+    const formData = new FormData();
+    setLastSubmittedValues(values);
+
+    Object.entries(values).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        value = value.trim();
+      }
+      if (value) {
+        formData.append(key, value);
+      }
+    });
+
+    try {
+      // sending to backend for email
+      await dispatch(signUpUser(formData));
+      toast.success("OTP sent successfully. Please check your email.");
+      setShowOtpModal(true);
+    } catch (error:any) {
+      toast.error(error?.message || "An error occurred during signup.")
+      console.log("Signup error-----------------------:", error);
+    }
+  };
+
+  const handleOtpSubmit = async (otpString: string) => {
+    if (otpString.length !== 6) {
+      setOtpError('Please enter a 6-digit OTP');
+      toast.error("Invalid OTP. Please enter a 6-digit OTP.");
+    } else {
+      if (lastSubmittedValues) {
+        await handleSubmit({...lastSubmittedValues, otp: otpString});
+        toast.success("Account verified successfully!");
+      }
+      setShowOtpModal(false);
+      resetForm();
+    }
+  };
+
+  const resetForm = () => {
+    initialValues.username = '';
+    initialValues.email = '';
+    initialValues.password = '';
+    initialValues.confirmPassword = '';
+    initialValues.role = '';
+  };
+
+  const resetOTP = async () => {
+    setOtp(['', '', '', '', '', '']);
+    setOtpError(null);
+    setTimer(30);
+    setIsExpired(false);
+
+    try {
+      if (lastSubmittedValues) {
+        await commonRequest("POST", `${URL}/auth/resend-otp`, lastSubmittedValues, config);
+        toast.success("OTP resent successfully!");
+      }
+    } catch (error:any) {
+      toast.error(error?.message || "Failed to resend OTP. Please try again.");  
+    }
+  };
+
+  // commented it becus sending mail 2 times
+
+  // useEffect(() => {
+  //   if (showOtpModal) {
+  //     resetOTP();
+  //   } else {
+  //     if (timerRef.current) {
+  //       clearInterval(timerRef.current);
+  //     }
+  //   }
+  // }, [showOtpModal]);
 
   useEffect(() => {
     if (showOtpModal && timer > 0) {
@@ -132,6 +162,7 @@ const Signup: React.FC = () => {
       }, 1000);
     } else if (timer === 0) {
       setIsExpired(true);
+      toast.error("OTP expired. Please resend a new OTP.");
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -144,46 +175,6 @@ const Signup: React.FC = () => {
     };
   }, [showOtpModal, timer]);
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setUsername(value);
-    setFormErrors(prev => ({ ...prev, username: validateUsername(value) }));
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEmail(value);
-    setFormErrors(prev => ({ ...prev, email: validateEmail(value) }));
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPassword(value);
-    setFormErrors(prev => ({ 
-      ...prev, 
-      password: validatePassword(value),
-      confirmPassword: validateConfirmPassword(value, confirmPassword)
-    }));
-  };
-
-  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setConfirmPassword(value);
-    setFormErrors(prev => ({ ...prev, confirmPassword: validateConfirmPassword(password, value) }));
-  };
-
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setRole(value);
-    setFormErrors(prev => ({ ...prev, role: validateRole(value) }));
-  };
-
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen">
       {/* Left Section */}
@@ -194,119 +185,121 @@ const Signup: React.FC = () => {
               VLearning<span className="text-fuchsia-900">.</span>
             </h1>
 
-            <form onSubmit={handleSignup}>
-              {/* Username */}
-              <div className="relative mb-6">
-                <input
-                  type="text"
-                  placeholder=" "
-                  value={username}
-                  onChange={handleUsernameChange}
-                  className={`w-full px-4 py-2 border ${formErrors.username ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900`}
-                />
-                <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white transition-all duration-200 focus-within:text-fuchsia-900">
-                  Username
-                </label>
-                {formErrors.username && <p className="text-red-500 text-xs mt-1">{formErrors.username}</p>}
-              </div>
-
-              {/* Email Field */}
-              <div className="relative mb-6">
-                <input
-                  type="email"
-                  placeholder=" "
-                  value={email}
-                  onChange={handleEmailChange}
-                  className={`w-full px-4 py-2 border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900`}
-                />
-                <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white transition-all duration-200 focus-within:text-fuchsia-900">
-                  Email
-                </label>
-                {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
-              </div>
-
-              {/* Password Field */}
-              <div className="relative mb-6">
-                <input
-                  type="password"
-                  placeholder=" "
-                  value={password}
-                  onChange={handlePasswordChange}
-                  className={`w-full px-4 py-2 border ${formErrors.password ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900`}
-                />
-                <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white transition-all duration-200 focus-within:text-fuchsia-900">
-                  Password
-                </label>
-                {formErrors.password && <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>}
-              </div>
-
-              {/* Confirm Password */}
-              <div className="relative mb-6">
-                <input
-                  type="password"
-                  placeholder=" "
-                  value={confirmPassword}
-                  onChange={handleConfirmPasswordChange}
-                  className={`w-full px-4 py-2 border ${formErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900`}
-                />
-                <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white transition-all duration-200 focus-within:text-fuchsia-900">
-                  Confirm Password
-                </label>
-                {formErrors.confirmPassword && <p className="text-red-500 text-xs mt-1">{formErrors.confirmPassword}</p>}
-              </div>
-
-              {/* Role Selection Dropdown */}
-              <div className="relative mb-10">
-                <select
-                  value={role}
-                  onChange={handleRoleChange}
-                  className={`w-full px-4 py-2 border ${formErrors.role ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900`}
-                >
-                  <option value="" disabled>Select Role</option>
-                  <option value="student">Student</option>
-                  <option value="instructor">Instructor</option>
-                </select>
-                <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white transition-all duration-200 focus-within:text-fuchsia-900">
-                  Role
-                </label>
-                {formErrors.role && <p className="text-red-500 text-xs mt-1">{formErrors.role}</p>}
-              </div>
-
-              {/* Signup Button */}
-              <button
-                type="submit"
-                className="w-full bg-fuchsia-700 font-semibold text-white py-2 rounded hover:bg-fuchsia-900 transition"
-              >
-                Signup
-              </button>
-
-              {/* Sign In with Google */}
-              <div className="flex justify-center mt-5">
-                <a
-                  href="#"
-                  className="bg-gray-400 rounded-full py-2 px-6 text-center text-white font-semibold hover:bg-gray-500 hover:underline flex items-center justify-center"
-                >
-                  <span className="mr-2">
-                    <img
-                      src={GoogleIcon}
-                      alt="Google icon"
-                      className="w-5 h-5 md:w-6 md:h-6 inline-block"
+            <Formik
+              initialValues={initialValues}
+              validationSchema={validationSchema}
+              onSubmit={handleSubmit}>
+              {({ isSubmitting }) => (
+                <Form>
+                  {/* Username Field */}
+                  <div className="relative mb-6">
+                    <Field
+                      type="text"
+                      name="username"
+                      placeholder=" "
+                      className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900"
                     />
-                  </span>
-                  Sign in with Google
-                </a>
-              </div>
+                    <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white">
+                      Username
+                    </label>
+                    <ErrorMessage name="username" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
 
-              <p className="mt-3 text-center text-gray-600">
-                Already Registered?{" "}
-                <Link
-                  to="/login"
-                  className="text-fuchsia-700 font-semibold hover:text-fuchsia-900 hover:underline"
-                >
-                  Login
-                </Link>
-              </p>
-            </form>
+                  {/* Email Field */}
+                  <div className="relative mb-6">
+                    <Field
+                      type="email"
+                      name="email"
+                      placeholder=" "
+                      className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900"
+                    />
+                    <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white">
+                      Email
+                    </label>
+                    <ErrorMessage name="email" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="relative mb-6">
+                    <Field
+                      type="password"
+                      name="password"
+                      placeholder=" "
+                      className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900"
+                    />
+                    <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white">
+                      Password
+                    </label>
+                    <ErrorMessage name="password" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+
+                  {/* Confirm Password Field */}
+                  <div className="relative mb-6">
+                    <Field
+                      type="password"
+                      name="confirmPassword"
+                      placeholder=" "
+                      className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900"
+                    />
+                    <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white">
+                      Confirm Password
+                    </label>
+                    <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+
+                  {/* Role Selection */}
+                  <div className="relative mb-10">
+                    <Field
+                      as="select"
+                      name="role"
+                      className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900"
+                    >
+                      <option value="">Select Role</option>
+                      <option value="student">Student</option>
+                      <option value="instructor">Instructor</option>
+                    </Field>
+                    <label className="absolute left-4 top-0 px-1 text-gray-700 text-md transform -translate-y-1/2 bg-white">
+                      Role
+                    </label>
+                    <ErrorMessage name="role" component="p" className="text-red-500 text-xs mt-1" />
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-fuchsia-700 font-semibold text-white py-2 rounded hover:bg-fuchsia-900 transition"
+                  >
+                    {isSubmitting ? 'Signing up...' : 'Signup'}
+                  </button>
+                </Form>
+              )}
+            </Formik>
+
+            {/* Sign In with Google */}
+            <div className="flex justify-center mt-5">
+              <Link to="/login"
+                className="bg-gray-400 rounded-full py-2 px-6 text-center text-white font-semibold hover:bg-gray-500 hover:underline flex items-center justify-center">
+                <span className="mr-2">
+                  <img
+                    src={GoogleIcon}
+                    alt="Google icon"
+                    className="w-5 h-5 md:w-6 md:h-6 inline-block"
+                  />
+                </span>
+                Sign in with Google
+              </Link>
+            </div>
+
+            <p className="mt-3 text-center text-gray-600">
+              Already Registered?{" "}
+              <Link
+                to="/login"
+                className="text-fuchsia-700 font-semibold hover:text-fuchsia-900 hover:underline"
+              >
+                Login
+              </Link>
+            </p>
           </div>
         </div>
       </div>
@@ -326,66 +319,19 @@ const Signup: React.FC = () => {
         </p>
       </div>
 
-      {/* OTP Modal */}
-      {showOtpModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 text-center text-fuchsia-900">Enter OTP</h2>
-            <p className="text-center mb-4 text-gray-600">
-              Please enter the 6-digit code sent to your email.
-            </p>
-            <div className="text-center text-sm font-medium mb-4">
-              {isExpired ? (
-                <span className="text-red-500">OTP Expired</span>
-              ) : (
-                <span>Time remaining: {formatTime(timer)}</span>
-              )}
-            </div>
-            <div className="flex justify-center space-x-2 mb-6">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  className="w-12 h-12 text-center text-2xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-900"
-                  disabled={isExpired}
-                />
-              ))}
-            </div>
-            {otpError && <p className="text-red-500 text-center mb-4">{otpError}</p>}
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowOtpModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition"
-              >
-                Cancel
-              </button>
-              {isExpired ? (
-                <button
-                  onClick={resetOTP}
-                  className="px-4 py-2 bg-fuchsia-700 text-white rounded hover:bg-fuchsia-800 transition"
-                >
-                  Resend OTP
-                </button>
-              ) : (
-                <button
-                  onClick={handleOtpSubmit}
-                  disabled={isExpired}
-                  className="px-4 py-2 bg-fuchsia-700 text-white rounded hover:bg-fuchsia-800 transition disabled:opacity-50"
-                >
-                  Submit
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <OtpModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        onSubmit={handleOtpSubmit}
+        onResend={resetOTP}
+        otp={otp}
+        setOtp={setOtp}
+        otpError={otpError}
+        timer={timer}
+        isExpired={isExpired}
+      />
     </div>
   );
-}
+};
 
 export default Signup;

@@ -12,37 +12,37 @@ const CourseList: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const courses: CourseHome[] = [
     {
-      image: '/api/placeholder/400/300',
+      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=300&h=200',
       name: 'Introduction to Web Development',
       instructorName: 'John Doe',
       rating: 4.8
     },
     {
-      image: '/api/placeholder/400/300',
+      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=300&h=200',
       name: 'Data Structures and Algorithms',
       instructorName: 'Jane Smith',
       rating: 4.6
     },
     {
-      image: '/api/placeholder/400/300',
+      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=300&h=200',
       name: 'Machine Learning for Beginners',
       instructorName: 'Bob Johnson',
       rating: 4.7
     },
     {
-      image: '/api/placeholder/400/300',
+      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=300&h=200',
       name: 'Development',
       instructorName: 'John Doe',
       rating: 4.8
     },
     {
-      image: '/api/placeholder/400/300',
+      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=300&h=200',
       name: 'Algorithms',
       instructorName: 'Jane Smith',
       rating: 4.6
     },
     {
-      image: '/api/placeholder/400/300',
+      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=300&h=200',
       name: 'Beginners',
       instructorName: 'Bob Johnson',
       rating: 4.7
