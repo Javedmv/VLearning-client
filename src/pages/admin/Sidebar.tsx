@@ -7,7 +7,6 @@ import {
   MessageSquare,
   Settings,
   BarChart2,
-  Calendar,
   LogOut
 } from 'lucide-react';
 
@@ -17,7 +16,6 @@ const menuItems = [
   { icon: GraduationCap, label: 'Instructors', href: '/admin/instructors' },
   { icon: BookOpen, label: 'Courses', href: '/admin/courses' },
   { icon: MessageSquare, label: 'Messages', href: '/admin/messages' },
-  { icon: Calendar, label: 'Schedule', href: '/admin/schedule' },
   { icon: BarChart2, label: 'Analytics', href: '/admin/analytics' },
   { icon: Settings, label: 'Settings', href: '/admin/settings' },
 ];

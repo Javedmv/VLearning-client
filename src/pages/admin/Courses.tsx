@@ -11,7 +11,7 @@ const Courses:React.FC = () => {
       level: 'Beginner',
       duration: '12 weeks',
       students: 2345,
-      price: 99.99,
+      price: 599,
       image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=300&h=200'
     },
     {
@@ -22,7 +22,7 @@ const Courses:React.FC = () => {
       level: 'Intermediate',
       duration: '8 weeks',
       students: 1876,
-      price: 89.99,
+      price: 599,
       image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&q=80&w=300&h=200'
     },
     {
@@ -33,7 +33,7 @@ const Courses:React.FC = () => {
       level: 'Advanced',
       duration: '10 weeks',
       students: 1543,
-      price: 129.99,
+      price: 599,
       image: 'https://images.unsplash.com/photo-1509343256512-d77a5cb3791b?auto=format&fit=crop&q=80&w=300&h=200'
     },
     {
@@ -44,7 +44,7 @@ const Courses:React.FC = () => {
       level: 'Advanced',
       duration: '16 weeks',
       students: 2156,
-      price: 149.99,
+      price: 599,
       image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&q=80&w=300&h=200'
     }
   ];
@@ -121,7 +121,7 @@ const Courses:React.FC = () => {
                 </div>
 
                 <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                  <span className="text-lg font-bold">${course.price}</span>
+                  <span className="text-lg font-bold">₹{course.price}</span>
                   <button className="text-blue-600 hover:text-blue-700 font-medium">
                     Edit Course
                   </button>

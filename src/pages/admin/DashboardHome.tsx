@@ -22,7 +22,7 @@ const DashboardHome:React.FC = () => {
     },
     {
       title: 'Total Revenue',
-      value: '$52,389',
+      value: '₹52,389',
       change: '+23.1%',
       isPositive: true,
       icon: DollarSign,
@@ -56,7 +56,7 @@ const DashboardHome:React.FC = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
           <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2].map((i) => (
               <div key={i} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg">
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                   <Users className="w-5 h-5 text-gray-600" />
@@ -74,7 +74,7 @@ const DashboardHome:React.FC = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Popular Courses</h2>
           <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2].map((i) => (
               <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-lg bg-gray-200"></div>
@@ -83,7 +83,7 @@ const DashboardHome:React.FC = () => {
                     <p className="text-xs text-gray-500">John Doe • 2,345 students</p>
                   </div>
                 </div>
-                <span className="text-sm font-semibold text-green-600">$99</span>
+                <span className="text-sm font-semibold text-green-600">₹999</span>
               </div>
             ))}
           </div>
