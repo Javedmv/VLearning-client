@@ -9,6 +9,12 @@ const trimValuesToFormData = (values: NestedValues, parentKey: string = ''): For
   for (const key in values) {
     const fullKey = parentKey ? `${parentKey}[${key}]` : key;
 
+    // Special handling for files (avatar and cv)
+    if ((key === 'avatar' || key === 'cv') && values[key] instanceof File) {
+      formData.append('files.' + key, values[key]);
+      continue;
+    }
+
     // Check if the current key is a parent key that should be omitted
     if (omitParentKeys.includes(key)) {
       // If it's a parent key, recurse into the nested fields
@@ -35,6 +41,11 @@ const trimValuesToFormData = (values: NestedValues, parentKey: string = ''): For
       console.log(fullKey)
       formData.append(fullKey, values[key]);
     }
+  }
+
+  // Log all entries in formData
+  for (const [key, value] of formData.entries()) {
+    console.log(`FormData Entry - Key: ${key}, Value:`, value);
   }
 
   return formData;

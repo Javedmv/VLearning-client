@@ -100,10 +100,12 @@ const UserForm: React.FC = () => {
 
   const handleSubmit = async (values: FormValues) => {
     try {
+
+      console.log(values,"values");
       const userCredentials = trimValuesToFormData(values)
       userCredentials.append("isNewUser", "false")
       
-      await commonRequest("POST",`${URL}/auth/user-form`,userCredentials, configMultiPart).then((res) => {
+      await commonRequest("POST",`${URL}/auth/multipart/user-form`,userCredentials, configMultiPart).then((res) => {
         console.log(res,"res of axios")
       }).catch((err) => {
         console.log(err,"err of axios")
@@ -242,11 +244,7 @@ const UserForm: React.FC = () => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setFieldValue('profile.avatar', reader.result);
-                                };
-                                reader.readAsDataURL(file);
+                                setFieldValue('profile.avatar', file);
                               }
                             }}
                           />
@@ -392,11 +390,7 @@ const UserForm: React.FC = () => {
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      setFieldValue('cv', reader.result);
-                                    };
-                                    reader.readAsDataURL(file);
+                                    setFieldValue('cv', file);
                                   }
                                 }}
                               />
