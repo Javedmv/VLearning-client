@@ -21,7 +21,8 @@ export interface FormValues {
     phoneNumber: string;
     role: 'student' | 'instructor';
     profile: {
-      avatar: string;
+      avatar: string | File;
+      avatarPreview?: string;
       dob: string;
       gender: 'male' | 'female' | 'other';
     };
@@ -244,7 +245,9 @@ const UserForm: React.FC = () => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                const previewUrl = window.URL.createObjectURL(file);
                                 setFieldValue('profile.avatar', file);
+                                setFieldValue('profile.avatarPreview', previewUrl);
                               }
                             }}
                           />
@@ -253,13 +256,19 @@ const UserForm: React.FC = () => {
                     ) : (
                       <div className="relative">
                         <img
-                          src={values.profile.avatar}
+                          src={values.profile.avatarPreview || ''}
                           alt="Profile"
                           className="w-40 h-40 rounded-full object-cover"
                         />
                         <button
                           type="button"
-                          onClick={() => setFieldValue('profile.avatar', '')}
+                          onClick={() => {
+                            if (values.profile.avatarPreview) {
+                              window.URL.revokeObjectURL(values.profile.avatarPreview);
+                            }
+                            setFieldValue('profile.avatar', '');
+                            setFieldValue('profile.avatarPreview', '');
+                          }}
                           className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"
                         >
                           <X className="h-4 w-4" />
