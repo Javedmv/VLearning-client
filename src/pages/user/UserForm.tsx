@@ -3,15 +3,17 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { Upload, X, FileText, Github, Linkedin, Instagram } from 'lucide-react';
 import * as Yup from "yup"
 // import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../redux/store';
+import { AppDispatch, RootState } from '../../redux/store';
 import {GraduationCap} from "lucide-react"
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { commonRequest, URL } from '../../common/api';
+import { commonRequest,  URL } from '../../common/api';
 import { configMultiPart } from '../../common/configurations';
 import trimValuesToFormData from '../../common/trimValues';
 // import { updateFormData } from '../../redux/actions/user/userAction';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export interface FormValues {
     username: string;
@@ -71,6 +73,8 @@ export const validationSchema = Yup.object().shape({
   });
 
 const UserForm: React.FC = () => {
+  // const dispatch = useDispatch<AppDispatch>()
+  const navigate = useNavigate();
   const {user } = useSelector((state:RootState) => state.user);
   // const dispatch = useDispatch<AppDispatch>()
 
@@ -101,29 +105,24 @@ const UserForm: React.FC = () => {
 
   const handleSubmit = async (values: FormValues) => {
     try {
-
-      console.log(values,"values");
-      const userCredentials = trimValuesToFormData(values)
-      userCredentials.append("isNewUser", "false")
+      console.log(values, "values");
+      const userCredentials = trimValuesToFormData(values);
+      userCredentials.append("isNewUser", "false");
+      // dispatch()
+      const res = await commonRequest("POST", `${URL}/auth/multipart/user-form`, userCredentials, configMultiPart);
       
-      await commonRequest("POST",`${URL}/auth/multipart/user-form`,userCredentials, configMultiPart).then((res) => {
-        console.log(res,"res of axios")
-      }).catch((err) => {
-        console.log(err,"err of axios")
-      })
-
-      
-      // await dispatch(updateFormData(formData))
-      // .then((res) => console.log(res,"res in AXIOS"))
-      // .catch((err) => {
-      //   console.log(err, 'REACHED THE AXIOS ERROR')
-      // })
-      // const res = 
-      // console.log(res,"result of userform res")
-    } catch (error) {
-      console.error('Error submitting form:', error);
+      if(res.success){
+        toast.success("Form Completed Successfully!");
+        navigate("/");
+      }else{
+        toast.error(res?.message)
+      }
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      toast.error("Please make sure you add an appropriate file type.");
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-fuchsia-200 to-fuchsia-950 py-12 px-4 sm:px-6 lg:px-8">
@@ -384,7 +383,7 @@ const UserForm: React.FC = () => {
                     {!values.cv ? (
                       <div 
                         onClick={() => document.getElementById('cv-upload')?.click()}
-                        className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 p-2 border border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-indigo-500 transition-colors duration-200"
+                        className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 p-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-indigo-500 transition-colors duration-200"
                       >
                         <div className="space-y-1 text-center">
                           <Upload className="mx-auto h-12 w-12 text-gray-400" />

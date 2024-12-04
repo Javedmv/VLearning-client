@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Carousel from "../../components/home/Carousel";
 import CourseList from "../../components/home/CoursesListH";
 import InstructorList from "../../components/home/InstructorListH";
@@ -8,19 +8,19 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
 
 const LandingPage:React.FC = () => {
-    const user = useSelector((state:RootState) => state.user);
-    const [users, setUsers] = useState({})
-    console.log(user, 'user in landing page')
-    useEffect(() => {
-        setUsers(() => {
-            user
-        })
-    },[user])
+    const {user} = useSelector((state:RootState) => state.user);
+    // const [myUser, SetMyUser] = useState({})
 
-    console.log(users)
+    console.log(user, 'user in landing page')
+    
+    useEffect(() => {
+        
+    },[])
+
+    // console.log(,"abother variable for user")
     return (
         <>
-        <Navbar/>
+        <Navbar User={user}/>
         <Carousel navigationType="dots"/>
         <CourseList/>
         <Carousel navigationType="arrows"/>

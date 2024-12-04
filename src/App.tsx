@@ -63,7 +63,7 @@ const router = (user: any) =>
       },
       {
         path: '/admin',
-        element: user?.role === 'admin' ? <Dashboard /> : <Navigate to="/" replace />,
+        element: user?.role === 'admin' ? <Dashboard user={user}/> : <Navigate to="/" replace />,
         children: [
           {
             path: '',
