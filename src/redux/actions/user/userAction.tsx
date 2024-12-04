@@ -1,6 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { commonReduxRequest, URL } from "../../../common/api";
-import { config, configMultiPart, handleError } from "../../../common/configurations";
+import { config,  handleError } from "../../../common/configurations";
 
 // signUpUser
 export const signUpUser = createAsyncThunk("user/signUpUser", async(userCredentials:any, {rejectWithValue}) => {
@@ -58,3 +58,12 @@ export const getUserDataFirst = createAsyncThunk("user/getUserDataFirst", async(
 //         return rejectWithValue(error)
 //     }
 // })
+
+export const logout = createAsyncThunk("user/logout", async( _ , {rejectWithValue}) => {
+    try {
+        await commonReduxRequest("POST",`${URL}/auth/logout`,rejectWithValue, config)
+    } catch (error) {
+        console.log(error," error in redux-aciton LOGOUT")
+        return rejectWithValue(error);
+    }
+})

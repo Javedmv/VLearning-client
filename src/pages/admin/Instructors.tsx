@@ -1,45 +1,44 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, Filter, MoreVertical, Star } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { commonRequest, URL } from '../../common/api';
+import { config } from '../../common/configurations';
+
+interface Instructor {
+  username:string;
+  firstName: string;
+  lastName: string;
+  profession: string;
+  isBlocked: boolean;
+  isVerified: boolean;
+  cv: string;
+  email: string;
+  profile: {
+    avatar: string;
+    dob: string;
+    gender: string;
+  };
+  _id: string;
+  phoneNumber:string;
+  profileDescription:string;
+}
 
 const Instructors:React.FC = () => {
-  const instructors = [
-    { 
-      id: 1, 
-      name: 'Dr. Robert Brown', 
-      email: 'robert@vlearning.com', 
-      specialization: 'Web Development',
-      rating: 4.8,
-      students: 1234,
-      courses: 5
-    },
-    { 
-      id: 2, 
-      name: 'Prof. Emily White', 
-      email: 'emily@vlearning.com', 
-      specialization: 'Data Science',
-      rating: 4.9,
-      students: 2156,
-      courses: 3
-    },
-    { 
-      id: 3, 
-      name: 'Dr. Michael Chen', 
-      email: 'michael@vlearning.com', 
-      specialization: 'Machine Learning',
-      rating: 4.7,
-      students: 1876,
-      courses: 4
-    },
-    { 
-      id: 4, 
-      name: 'Prof. Sarah Johnson', 
-      email: 'sarah@vlearning.com', 
-      specialization: 'UI/UX Design',
-      rating: 4.9,
-      students: 1543,
-      courses: 6
-    }
-  ];
+  const {user} = useOutletContext<{user: any}>();
+  const [instructors , setInstructors ] = useState<Instructor[]>([])
+
+  useEffect(() => {
+    const fetchInstructor = async () => {
+      try {
+        const res = await commonRequest("GET", `${URL}/auth/instructors`, {}, config);
+        setInstructors(res.data)
+      } catch (error) {
+        console.error("Failed to fetch students: in ADMIN/INSTRUCTOR", error);
+      }
+    };
+  
+    fetchInstructor();
+  }, [commonRequest]);
 
   return (
     <div>
@@ -66,15 +65,25 @@ const Instructors:React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
           {instructors.map((instructor) => (
-            <div key={instructor.id} className="bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow">
+            <div key={instructor._id} className="bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold">
-                    {instructor.name.charAt(0)}
+                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-lg font-extrabold">
+                    {instructor?.firstName ? instructor?.firstName?.charAt(0).toUpperCase() : instructor?.username?.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">{instructor.name}</h3>
-                    <p className="text-sm text-gray-500">{instructor.specialization}</p>
+                  {
+                    instructor?.firstName ? 
+                    (
+                    <h3 className="text-lg font-semibold">{instructor?.firstName?.charAt(0).toUpperCase() + instructor?.firstName?.slice(1).toLowerCase()}{" "}
+                    {instructor?.lastName?.charAt(0).toUpperCase() + instructor?.lastName?.slice(1).toLowerCase()}</h3>
+                    )
+                    :
+                    (
+                      <h3 className="text-lg font-semibold">{instructor?.username?.charAt(0).toUpperCase() + instructor?.username?.slice(1).toLowerCase()}</h3>
+                    )
+                  }
+                  <p className="text-sm text-gray-500">{instructor?.profession}</p>
                   </div>
                 </div>
                 <button className="text-gray-400 hover:text-gray-500">
@@ -82,7 +91,7 @@ const Instructors:React.FC = () => {
                 </button>
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <div className="flex items-center text-sm">
                   <Star className="w-4 h-4 text-yellow-400 mr-1" />
                   <span className="font-medium">{instructor.rating}</span>
@@ -96,7 +105,7 @@ const Instructors:React.FC = () => {
                   <span className="font-medium">{instructor.courses}</span>
                   <span className="text-gray-500"> courses</span>
                 </div>
-              </div>
+              </div> */}
 
               <div className="mt-4 pt-4 border-t">
                 <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">

@@ -1,9 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "../../redux/store";
+import { logout } from "../../redux/actions/user/userAction";
+import toast from "react-hot-toast";
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  User:any
+}
+
+const Navbar: React.FC<NavbarProps> = ({User}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  // const navigate = useNavigate()
+
+  const handleLogout = () => {
+    try {
+      dispatch(logout())
+      .then(() => toast.success("Logout Successfully"))
+    } catch (error) {
+      console.error(error,"ERROR in HANDLE LOGOUT")
+    }
+  }
+  useEffect(() => {
+    // navigate("/")
+  },[])
+
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -35,12 +58,7 @@ const Navbar: React.FC = () => {
             >
               Courses
             </a>
-            <a
-              href="#"
-              className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
-            >
-              Teach
-            </a>
+            
             <a
               href="#"
               className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
@@ -53,21 +71,69 @@ const Navbar: React.FC = () => {
             >
               About Us
             </a>
+            { 
+                User?.role === "instructor"?
+                (
+                  <a
+                  href="#"
+                  className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
+                  >
+                  My Courses
+                  </a>
+                ) 
+                :
+                (
+                  <a
+                  href="#"
+                  className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
+                  >
+                    Teach
+                  </a>
+                )
+            }
+
           </div>
 
           {/* Auth Buttons - Hidden when screen size reaches 769px */}
-          <div className="hidden lg:flex items-center space-x-4">
-            <Link to="/login">
-              <button className="px-6 py-2 bg-fuchsia-700 text-white rounded-full hover:bg-fuchsia-900 transition duration-300 ease-in-out">
-                Login
+          {User?.isNewUser === false && (User?.role === "student" || User?.role === "instructor")?
+              (<div className="hidden lg:flex items-end space-x-3">
+
+              <div className="flex items-center space-x-3 bg-fuchsia-300 px-3 py-0.5 rounded-lg">
+                <span className="text-fuchsia-900 font-medium"> {User?.username ? User.username.charAt(0).toUpperCase() + User.username.slice(1) : ''}</span>
+                {/* <img
+                  src={User?.avatarUrl || "https://via.placeholder.com/40"} // Default avatar if none is provided
+                  alt={`${User?.username}'s avatar`}
+                  className="w-10 h-10 rounded-full object-cover"
+                /> */}
+                <div className="w-10 h-10 rounded-full bg-gray-300 font-bold flex items-center justify-center">
+                {User?.username?.charAt(0).toUpperCase()}
+                </div>
+              </div>
+
+          
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 bg-fuchsia-700 text-white rounded-full hover:bg-red-700 transition duration-300 ease-in-out"
+              >
+                Logout
               </button>
-            </Link>
-            <Link to="/signup">
-              <button className="px-6 py-2 bg-white text-fuchsia-900 border-2 border-purple-600 rounded-full hover:bg-gray-300 transition duration-300 ease-in-out">
-              Signup
-              </button>
-            </Link>
-          </div>
+            </div>)
+            :
+             (
+            <div className="hidden lg:flex items-center space-x-4">
+              <Link to="/login">
+                <button className="px-6 py-2 bg-fuchsia-700 text-white rounded-full hover:bg-fuchsia-900 transition duration-300 ease-in-out">
+                  Login
+                </button>
+              </Link>
+              <Link to="/signup">
+                <button className="px-6 py-2 bg-white text-fuchsia-900 border-2 border-purple-600 rounded-full hover:bg-gray-300 transition duration-300 ease-in-out">
+                Signup
+                </button>
+              </Link>
+            </div>
+             )
+            }
 
           {/* Mobile Menu Button - Shown when screen size is 769px or below */}
           <div className="lg:hidden flex items-center">
