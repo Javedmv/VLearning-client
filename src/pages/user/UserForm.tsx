@@ -14,6 +14,7 @@ import trimValuesToFormData from '../../common/trimValues';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { userForm } from '../../redux/actions/user/userAction';
 
 export interface FormValues {
     username: string;
@@ -73,10 +74,9 @@ export const validationSchema = Yup.object().shape({
   });
 
 const UserForm: React.FC = () => {
-  // const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useDispatch<AppDispatch>()
   const navigate = useNavigate();
   const {user } = useSelector((state:RootState) => state.user);
-  // const dispatch = useDispatch<AppDispatch>()
 
   const initialValues: FormValues = {
     username: user.username,
@@ -108,15 +108,15 @@ const UserForm: React.FC = () => {
       console.log(values, "values");
       const userCredentials = trimValuesToFormData(values);
       userCredentials.append("isNewUser", "false");
-      // dispatch()
-      const res = await commonRequest("POST", `${URL}/auth/multipart/user-form`, userCredentials, configMultiPart);
-      
-      if(res.success){
+      await dispatch(userForm(userCredentials))
+      .then(() => {
         toast.success("Form Completed Successfully!");
         navigate("/");
-      }else{
-        toast.error(res?.message)
-      }
+      }).catch((error:any) => {
+        toast.error(error?.message)
+      })
+      // const res = await commonRequest("POST", `${URL}/auth/multipart/user-form`, userCredentials, configMultiPart);
+      
     } catch (err) {
       console.error("Error submitting form:", err);
       toast.error("Please make sure you add an appropriate file type.");

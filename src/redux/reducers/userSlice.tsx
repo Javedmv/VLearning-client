@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import {  loginUser, signUpUser, getUserDataFirst ,logout } from "../actions/user/userAction";
+import {  loginUser, signUpUser, getUserDataFirst ,logout ,userForm } from "../actions/user/userAction";
 
 const initialState = {
     loading: false as Boolean,
@@ -69,6 +69,19 @@ const userSlice = createSlice({
             state.user = null;
             state.error = payload;
         })
+        .addCase(userForm.pending, (state) => {
+            state.loading = true;
+        })
+        .addCase(userForm.fulfilled, (state, {payload}) => {
+            state.loading = false;
+            state.error = null;
+            state.user = payload;
+        })
+        .addCase(userForm.rejected, (state, {payload}) => {
+            state.loading = false;
+            state.user = null;
+            state.error = payload;
+        })
     }
 })
 
@@ -76,17 +89,3 @@ export const { updateError } = userSlice.actions;
 
 export default userSlice.reducer;
 
-
-        // .addCase(updateFormData.pending, (state) => {
-        //     state.loading = true;
-        // })
-        // .addCase(updateFormData.fulfilled, (state, {payload}) => {
-        //     state.loading = false;
-        //     state.error = null;
-        //     state.user = payload
-        // })
-        // .addCase(updateFormData.rejected, (state, {payload}) => {
-        //     state.loading = false;
-        //     state.user = null;
-        //     state.error = payload;
-        // })

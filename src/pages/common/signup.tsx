@@ -50,7 +50,8 @@ const Signup: React.FC = () => {
   const [isExpired, setIsExpired] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const [lastSubmittedValues, setLastSubmittedValues] = useState<SignupFormValues | null>(null);
-  const {user} = useSelector((state:RootState) => state.user)
+
+  const {user ,error} = useSelector((state:RootState) => state.user)
 
   const initialValues: SignupFormValues = {
     username: '',
@@ -69,14 +70,19 @@ const Signup: React.FC = () => {
       toast.success("Signup successful! Redirecting...");
     }
 
+
     // need to clearout the error
     // return () => {
     //   dispatch()
     // }
   },[user])
 
-
+  
   const handleSubmit = async (values: SignupFormValues) => {
+    if(error){
+      toast.error(error)
+      return;
+    }
     setOtp(['', '', '', '', '', '']);
     setOtpError(null);
     setTimer(30);
