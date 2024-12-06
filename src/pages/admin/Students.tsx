@@ -4,8 +4,10 @@ import { useOutletContext } from 'react-router-dom';
 import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 interface Student {
+  username: string;
   firstName: string;
   lastName: string;
   profession: string;
@@ -17,61 +19,52 @@ interface Student {
   _id: string;
 }
 
-const Students:React.FC = () => {
-  const {user} = useOutletContext<{user: any}>();
-  const [students, setStudents] = useState<Student[]>([])
+const Students: React.FC = () => {
+  const { user } = useOutletContext<{ user: any }>();
+  const [students, setStudents] = useState<Student[]>([]);
   
   useEffect(() => {
     const fetchStudents = async () => {
       try {
         const res = await commonRequest("GET", `${URL}/auth/students`, null, config);
-        setStudents(res.data)
+        setStudents(res.data);
       } catch (error) {
         console.error("Failed to fetch students: in ADMIN/STUDENTS", error);
       }
     };
   
     fetchStudents();
-  }, [commonRequest]);
-
-
+  }, []);
 
   const handleBlockUnblock = async (studentId: string, shouldBlock: boolean) => {
     try {
-      await commonRequest("PUT", `${URL}/auth/student/block/${studentId}`, 
+      const response = await commonRequest(
+        "PUT", 
+        `${URL}/auth/student/block/${studentId}`, 
         { isBlocked: shouldBlock }, 
         config
-      ).then((res) => {
-        res?.success? toast.success(res?.message) : toast.error(res?.message)
-      })
+      );
 
-      setStudents(prev => 
-        prev.map(student => 
-          student._id === studentId 
+      if (response.success) {
+        toast.success(response.message);
+
+        setStudents(prev => 
+          prev.map(student => 
+            student._id === studentId 
             ? { ...student, isBlocked: shouldBlock } 
             : student
-        )
-      )
+          )
+        );
+      } else {
+        toast.error(response?.message);
+      }
       
-    } catch (error:any) {
+    } catch (error: any) {
       console.error("Failed to block/unblock student", error);
-      toast.error(error?.message)
+      toast.error(error?.message);
     }
-   };
+  };
    
-   const handleDelete = async (studentId: string) => {
-    try {
-      await commonRequest("DELETE", `${URL}/auth/student/delete/${studentId}`, {}, config)
-      .then((res) => {
-        res?.success? toast.success(res?.message) : toast.error(res?.message)
-      })
-      setStudents(prev => prev.filter(student => student._id !== studentId));
-    } catch (error:any) {
-      console.error("Failed to delete student", error);
-      toast.error(error?.message)
-    }
-   };
-
   return (
     <div>
       <div className="mb-6">
@@ -102,74 +95,68 @@ const Students:React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qualification</th>
-                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {students.map((student) => (
+            <tbody className="bg-white divide-y divide-gray-400">
+              {students.length !== 0 && students.map((student) => (
                 <tr key={student?._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-8 h-8 rounded-full bg-blue-400 font-bold flex items-center justify-center">
-                        {student?.firstName.charAt(0).toUpperCase()}
+                        {student?.username?.charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {student?.firstName.charAt(0).toUpperCase() + student?.firstName.slice(1).toLowerCase()}{" "}
-                          {student?.lastName.charAt(0).toUpperCase() + student?.lastName.slice(1).toLowerCase()}
+                          {student?.firstName ? (
+                            <>
+                              {student.firstName.charAt(0).toUpperCase() + student.firstName.slice(1).toLowerCase()}{" "}
+                              {student.lastName.charAt(0).toUpperCase() + student.lastName.slice(1).toLowerCase()}
+                            </>
+                          ) : (
+                            student?.username.charAt(0).toUpperCase() + student.username.slice(1).toLowerCase()
+                          )}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student?.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student?.profession}</td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-blue-600 h-2.5 rounded-full"
-                        style={{ width: `${student?.progress}%` }}
-                      ></div>
-                    </div>
-                  </td> */}
+                  
                   {student.isBlocked ? (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="w-20 inline-flex justify-center text-xs leading-5 font-semibold rounded-full bg-red-200 text-red-800 px-2">
                         Blocked
                       </span>
                     </td>
-                    ) : (
+                  ) : (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="w-20 inline-flex justify-center text-xs leading-5 font-semibold rounded-full bg-green-200 text-green-800 px-2">
                         Active
                       </span>
                     </td>
-                    )}
+                  )}
 
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex space-x-2">
-                      <button 
-                        onClick={() => handleBlockUnblock(student._id, !student.isBlocked)}
-                        className={`w-24 px-4 py-2 rounded-md text-s font-semibold transition-colors duration-300 ${
-                          student.isBlocked 
-                            ? 'bg-green-500 text-white hover:bg-green-800' 
-                            : 'bg-red-500 text-white hover:bg-red-800'
-                        }`}
-                      >
-                        {student.isBlocked ? 'Unblock' : 'Block'}
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(student._id)}
-                        className="px-3 py-1 bg-red-100 text-red-800 rounded-md text-s hover:bg-red-200"
-                      >
-                        Delete
-                      </button>
-                    </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 flex space-x-2">
+                    <ConfirmationModal
+                      triggerText={student.isBlocked ? 'Unblock' : 'Block'}
+                      title={`${student.isBlocked ? 'Unblock' : 'Block'} Student`}
+                      description={`Are you sure you want to ${student.isBlocked ? 'unblock' : 'block'} student ${student?.email}. This action can be reversed.`}
+                      onConfirm={() => handleBlockUnblock(student._id, !student.isBlocked)}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {students.length === 0 && (
+        <div className="text-center text-gray-500 mt-6">
+          No Students found!!
+        </div>
+        )}
       </div>
     </div>
   );

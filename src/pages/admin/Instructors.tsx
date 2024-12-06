@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, MoreVertical, Star } from 'lucide-react';
+import { Search, Filter, MoreVertical, Star ,Check, X } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
+import toast from 'react-hot-toast';
 
 interface Instructor {
   username:string;
@@ -10,7 +12,7 @@ interface Instructor {
   lastName: string;
   profession: string;
   isBlocked: boolean;
-  isVerified: boolean;
+  isVerified: "approved" | "rejected" | "requested";
   cv: string;
   email: string;
   profile: {
@@ -26,98 +28,192 @@ interface Instructor {
 const Instructors:React.FC = () => {
   const {user} = useOutletContext<{user: any}>();
   const [instructors , setInstructors ] = useState<Instructor[]>([])
-
+  
   useEffect(() => {
     const fetchInstructor = async () => {
       try {
-        const res = await commonRequest("GET", `${URL}/auth/instructors`, {}, config);
+        const res = await commonRequest("GET",`${URL}/auth/instructors`, {}, config);
         setInstructors(res.data)
       } catch (error) {
         console.error("Failed to fetch students: in ADMIN/INSTRUCTOR", error);
       }
     };
-  
     fetchInstructor();
-  }, [commonRequest]);
+  }, []);
+
+  const handleBlockUnblock = async (instructorId: string, shouldBlock: boolean) => {
+    try {
+      const response = await commonRequest(
+        "PUT", 
+        `${URL}/auth/student/block/${instructorId}`, 
+        { isBlocked: shouldBlock }, 
+        config
+      );
+
+      if (response.success) {
+        toast.success(response.message);
+
+        setInstructors(prev => 
+          prev.map(instructor => 
+            instructor._id === instructorId 
+            ? { ...instructor, isBlocked: shouldBlock } 
+            : instructor
+          )
+        );
+      } else {
+        toast.error(response?.message);
+      }
+      
+    } catch (error: any) {
+      console.error("Failed to block/unblock instructor", error);
+      toast.error(error?.message);
+    }
+  };
+
+  const handleApproveDecline = async(instructorId:string, verify: "approved" | "rejected" | "requested") => {
+    try {
+      const response = await commonRequest("PUT",`${URL}/auth/approve-decline/${instructorId}`, {isVerified:verify} ,config)
+      if (response.success) {
+        toast.success(response.message);
+              setInstructors((prevInstructors) =>
+        prevInstructors.map((instructor) =>
+          instructor._id === instructorId
+            ? { ...instructor, isVerified: verify }
+            : instructor
+        )
+      );
+      } else {
+        toast.error(response?.message);
+      }
+    } catch (error:any) {
+      console.error("Failed to Approve/Decline instructor", error);
+      toast.error(error?.message);
+    }
+  }
+
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Instructors</h1>
-        <p className="text-gray-600">Manage your course instructors</p>
+    <div className="container mx-auto px-4 py-6">
+      <h2 className="text-2xl font-bold mb-4">Instructors</h2>
+      <p className="text-gray-600 mb-6">Manage your course instructors</p>
+  
+      <div className="flex mb-4">
+        {/* Filter component can be added here */}
+        <input 
+          type="text" 
+          placeholder="Filter instructors..." 
+          className="border px-3 py-2 rounded-md w-full"
+        />
       </div>
+  
+      <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profession</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cv</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-400">
+              {instructors.length !== 0 && instructors.map((instructor) => (
+                <tr key={instructor?._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-orange-500 font-bold flex items-center justify-center">
+                        {instructor?.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {instructor?.firstName ? (
+                            <>
+                              {instructor?.firstName.charAt(0).toUpperCase() + instructor?.firstName.slice(1).toLowerCase()}{" "}
+                              {instructor?.lastName.charAt(0).toUpperCase() + instructor?.lastName.slice(1).toLowerCase()}
+                            </>
+                          ) : (
+                            instructor?.username.charAt(0).toUpperCase() + instructor?.username.slice(1).toLowerCase()
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{instructor?.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{instructor?.profession}</td>
+                  
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    show cv
+                  </td>
+                  {instructor?.isBlocked ? (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="w-20 inline-flex justify-center text-xs leading-5 font-semibold rounded-full bg-red-200 text-red-800 px-2">
+                        Blocked
+                      </span>
+                    </td>
+                  ) : (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="w-20 inline-flex justify-center text-xs leading-5 font-semibold rounded-full bg-green-200 text-green-800 px-2">
+                        Active
+                      </span>
+                    </td>
+                  )}
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <div className="relative w-64">
-            <input
-              type="text"
-              placeholder="Search instructors..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
-            />
-            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          </div>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <Filter className="w-5 h-5" />
-            <span>Filter</span>
-          </button>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 flex space-x-3 float-end">
+                    <ConfirmationModal
+                      triggerText={instructor?.isBlocked ? 'Unblock' : 'Block'}
+                      title={`${instructor?.isBlocked ? 'Unblock' : 'Block'} Instructor`}
+                      description={`Are you sure you want to ${instructor?.isBlocked ? 'unblock' : 'block'} instructor? ${instructor?.email}. This action can be reversed.`}
+                      onConfirm={() => handleBlockUnblock(instructor?._id, !instructor?.isBlocked)}
+                    />
+                    {
+                      instructor?.isVerified === "approved" ? 
+                      <span className='inline-flex items-center font-semibold'>{instructor?.isVerified?.charAt(0).toUpperCase() + instructor?.isVerified?.slice(1).toLowerCase()} <Check className="w-6 h-6 text-green-500" /></span> : instructor?.isVerified === "requested" ?
+                      ( <>
+                          <ConfirmationModal
+                            triggerText="Approve"
+                            title="Approve Instructor"
+                            description={`Are you sure you want to Approve instructor with Email, ${instructor?.email}. This action can be reversed.`}
+                            onConfirm={() => handleApproveDecline(instructor?._id, "approved")}
+                          />
+                          <ConfirmationModal
+                            triggerText="Decline"
+                            title="Decline Instructor"
+                            description={`Are you sure you want to Decline instructor with Email, ${instructor?.email}. This action can be reversed.`}
+                            onConfirm={() => handleApproveDecline(instructor?._id, "rejected")}
+                          />
+                        </>
+                      ) : (
+                        <>
+                        <ConfirmationModal
+                          triggerText="Approve"
+                          title="Approve Instructor"
+                          description={`Are you sure you want to Approve instructor with Email, ${instructor?.email}. This action can be reversed.`}
+                          onConfirm={() => handleApproveDecline(instructor?._id, "approved")}
+                        />
+                        <span className="font-semibold flex items-center text-red-800">
+                          Rejected <X className="w-6 h-6 text-red-500 ml-2" />
+                        </span>
+                      </>
+                      )
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-          {instructors.map((instructor) => (
-            <div key={instructor._id} className="bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-lg font-extrabold">
-                    {instructor?.firstName ? instructor?.firstName?.charAt(0).toUpperCase() : instructor?.username?.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                  {
-                    instructor?.firstName ? 
-                    (
-                    <h3 className="text-lg font-semibold">{instructor?.firstName?.charAt(0).toUpperCase() + instructor?.firstName?.slice(1).toLowerCase()}{" "}
-                    {instructor?.lastName?.charAt(0).toUpperCase() + instructor?.lastName?.slice(1).toLowerCase()}</h3>
-                    )
-                    :
-                    (
-                      <h3 className="text-lg font-semibold">{instructor?.username?.charAt(0).toUpperCase() + instructor?.username?.slice(1).toLowerCase()}</h3>
-                    )
-                  }
-                  <p className="text-sm text-gray-500">{instructor?.profession}</p>
-                  </div>
-                </div>
-                <button className="text-gray-400 hover:text-gray-500">
-                  <MoreVertical className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* <div className="space-y-2">
-                <div className="flex items-center text-sm">
-                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                  <span className="font-medium">{instructor.rating}</span>
-                  <span className="text-gray-500 ml-1">rating</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">{instructor.students.toLocaleString()}</span>
-                  <span className="text-gray-500"> students</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">{instructor.courses}</span>
-                  <span className="text-gray-500"> courses</span>
-                </div>
-              </div> */}
-
-              <div className="mt-4 pt-4 border-t">
-                <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  View Profile
-                </button>
-              </div>
-            </div>
-          ))}
+  
+      {instructors.length === 0 && (
+        <div className="text-center text-gray-500 mt-6">
+          No instructors found!!
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 export default Instructors;
+
+
