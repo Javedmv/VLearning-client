@@ -21,6 +21,7 @@ const userSlice = createSlice({
             state.loading = true;
         })
         .addCase(signUpUser.fulfilled, (state, {payload}) => {
+            console.log(payload, "payload of the userSlice")
             state.loading = false;
             state.error = null;
             state.user = payload;

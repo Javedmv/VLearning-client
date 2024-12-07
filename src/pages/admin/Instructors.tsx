@@ -123,7 +123,7 @@ const Instructors:React.FC = () => {
                 <tr key={instructor?._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-orange-500 font-bold flex items-center justify-center">
+                      <div className={`w-8 h-8 rounded-full ${instructor.isBlocked? "bg-red-600" : instructor?.isVerified === "requested" ? 'bg-orange-500' :  instructor?.isVerified === "approved" ? 'bg-green-500' : 'bg-red-600'} font-bold flex items-center justify-center`}>
                         {instructor?.username?.charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-4">
@@ -167,9 +167,11 @@ const Instructors:React.FC = () => {
                       description={`Are you sure you want to ${instructor?.isBlocked ? 'unblock' : 'block'} instructor? ${instructor?.email}. This action can be reversed.`}
                       onConfirm={() => handleBlockUnblock(instructor?._id, !instructor?.isBlocked)}
                     />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 flex space-x-3 float-end">
                     {
                       instructor?.isVerified === "approved" ? 
-                      <span className='inline-flex items-center font-semibold'>{instructor?.isVerified?.charAt(0).toUpperCase() + instructor?.isVerified?.slice(1).toLowerCase()} <Check className="w-6 h-6 text-green-500" /></span> : instructor?.isVerified === "requested" ?
+                      <span className='inline-flex items-center font-semibold'>{instructor?.isVerified?.charAt(0).toUpperCase() + instructor?.isVerified?.slice(1).toLowerCase()} <Check className="ml-2 w-6 h-6 text-green-500" /></span> : instructor?.isVerified === "requested" ?
                       ( <>
                           <ConfirmationModal
                             triggerText="Approve"
