@@ -12,6 +12,7 @@ import { config } from "../../common/configurations";
 import { URL } from "../../common/api";
 import OtpModal from '../../components/user/otpModal';
 import toast from "react-hot-toast";
+import { updateError } from "../../redux/reducers/userSlice";
 
 // interface - form values
 interface SignupFormValues {
@@ -69,13 +70,32 @@ const Signup: React.FC = () => {
       navigate('/user-form')
       toast.success("Signup successful! Redirecting...");
     }
-
-
-    // need to clearout the error
-    // return () => {
-    //   dispatch()
-    // }
+    
+    return () => {
+      dispatch(updateError(""))
+    }
   },[user])
+
+
+  useEffect(() => {
+    if (showOtpModal && timer > 0) {
+      timerRef.current = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setIsExpired(true);
+      toast.error("OTP expired. Please resend a new OTP.");
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [showOtpModal, timer]);
 
   
   const handleSubmit = async (values: SignupFormValues) => {
@@ -102,9 +122,13 @@ const Signup: React.FC = () => {
 
     try {
       // sending to backend for email
-      await dispatch(signUpUser(formData));
-      toast.success("OTP sent successfully. Please check your email.");
-      setShowOtpModal(true);
+      const response = await dispatch(signUpUser(formData));
+      if(response.meta.requestStatus === "fulfilled"){
+        toast.success("OTP sent successfully. Please check your email.");
+        setShowOtpModal(true);
+      }else{
+        toast.error(response?.payload?.error || "Error occured while sending otp, Please try again")
+      }
     } catch (error:any) {
       toast.error(error?.message || "An error occurred during signup.")
       console.log("Signup error-----------------------:", error);
@@ -161,25 +185,7 @@ const Signup: React.FC = () => {
   //   }
   // }, [showOtpModal]);
 
-  useEffect(() => {
-    if (showOtpModal && timer > 0) {
-      timerRef.current = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-    } else if (timer === 0) {
-      setIsExpired(true);
-      toast.error("OTP expired. Please resend a new OTP.");
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    }
 
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [showOtpModal, timer]);
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen">

@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { Link, useNavigate } from "react-router-dom";
@@ -9,6 +9,10 @@ import toast from "react-hot-toast";
 import { loginUser } from "../../redux/actions/user/userAction";
 import { AppDispatch, RootState  } from "../../redux/store";
 import { updateError } from "../../redux/reducers/userSlice";
+import { commonRequest, URL } from "../../common/api";
+import { config } from "../../common/configurations";
+import OtpModal from "../../components/user/otpModal";
+import PasswordResetModal from "../../components/user/PasswordResetModal";
 
 interface LoginFormValues {
   email: string;
@@ -25,11 +29,27 @@ const Login: React.FC = () => {
   
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate()
-  
+
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [timer, setTimer] = useState(30);
+  const [isExpired, setIsExpired] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const [currentEmail, setCurrentEmail] = useState("");
+
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  const initialValues: LoginFormValues = {
+    email: '',
+    password: '',
+  };
+
   useEffect(() => {
     if(user){
       navigate("/")
     }
+    
     return () => {
       dispatch(updateError(""))
     }
@@ -44,30 +64,113 @@ const Login: React.FC = () => {
     }
   }, [error]);
   
-  const initialValues: LoginFormValues = {
-    email: '',
-    password: '',
-  };
+  useEffect(() => {
+    if (showOtpModal && timer > 0) {
+      timerRef.current = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setIsExpired(true);
+      toast.error("OTP expired. Please resend a new OTP.");
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [showOtpModal, timer]);
 
   const handleSubmit = async (values: LoginFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
     try {
       const res: any = await dispatch(loginUser(values));
       if (res.payload?.success) {
         toast.success("Login successful");
-        // navigate("/");
       }
-      // else {
-      //   // Handle API error message
-      //   const errorMessage = res?.payload || "Login failed. Please try again.";
-      // toast.error(errorMessage);
-      // }
+     
     } catch (error) {
       toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
-  
+
+  const resetOTP = () => {
+    setOtp(['', '', '', '', '', '']);
+    setTimer(30);
+    setIsExpired(false);
+    setOtpError(null);
+  }
+
+  const handleForgotPassword = async (formikProps: any) => {
+    try {
+      const email = formikProps.values.email;
+      setCurrentEmail(email);
+
+      if (email) {
+        const response =await commonRequest("POST",`${URL}/auth/forgot-password`,{email}, config);
+        if(response.success){
+          toast.success(response?.message || "OTP has sent successfully")
+          // TODO: Implement RESENT OTP in of forgotPassword show OTP modal
+          setShowOtpModal(true);
+          resetOTP();
+        }
+      } else {
+        toast.error("Please enter the Email in the field!!!")
+      }
+    } catch (error: any) {
+        toast.error(error?.response?.data?.message || "An error occurred while processing forgot password")
+    }
+  }
+
+  const handleOtpSubmit = async (otpString: string, email:string) => {
+    try {
+      if (otpString.length !== 6) {
+        setOtpError('Please enter a 6-digit OTP');
+        toast.error("Invalid OTP. Please enter a 6-digit OTP.");
+        return;
+      }
+      const response = await commonRequest("POST",`${URL}/auth/forgot-password/otp-submit`, {otp:otpString, email}, config);
+      if(response.success){
+        setShowOtpModal(false);
+        toast.success(response?.message || "Account verified successfully!");
+        // TODO:Enter new Passowrd
+        setIsPasswordModalOpen(true);
+
+      }else{
+        toast.error(response?.message || "An error occured in OTP verification")
+      }
+    } catch (error:any) { 
+      toast.error(error?.response?.data?.message || "OTP verification failed");
+    }
+  }
+
+  const handlePasswordReset = async(password:string ,email:string) => {
+    try {
+      console.log(password,"email in the reset" ,email)
+      const response = await commonRequest("POST",`${URL}/auth/forgot-password/update-passoword`, {password, email}, config);
+      if(response.success){
+        toast.success(response?.message || "Password updated successfully!");
+      }else{
+        toast.error(error?.response?.data?.message || "password update failed");
+      }
+      setIsPasswordModalOpen(false);
+    } catch (error:any) {
+      toast.error(error?.response?.data?.message || "Reset Password failed, Please try again");
+    }
+  }
+
+  // const handleResendOtp = async(){
+  //   try {
+  //     handleForgotPassword()
+  //   } catch (error) {
+      
+  //   }
+  // }
+
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen">
@@ -98,7 +201,7 @@ const Login: React.FC = () => {
               validationSchema={validationSchema}
               onSubmit={handleSubmit}
             >
-              {({ isSubmitting }) => (
+              {(formikProps) => (
                 <Form>
                   {/* Email Field */}
                   <div className="mb-4">
@@ -126,22 +229,22 @@ const Login: React.FC = () => {
 
                   {/* Remember Me and Forgot Password */}
                   <div className="flex justify-end items-center mb-4">
-                    {/* <label className="inline-flex items-center text-gray-600 text-sm">
-                      <Field type="checkbox" name="rememberMe" className="mr-2" />
-                      Remember me
-                    </label> */}
-                    <a href="#" className="text-sm text-gray-600 hover:underline">
+                    <button 
+                      type="button" 
+                      className="text-sm text-gray-600 hover:underline" 
+                      onClick={() => handleForgotPassword(formikProps)}
+                    >
                       Forgot password?
-                    </a>
+                    </button>
                   </div>
 
                   {/* Login Button */}
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={formikProps.isSubmitting}
                     className="w-full bg-fuchsia-700 font-semibold text-white py-2 rounded hover:bg-fuchsia-900 transition"
                   >
-                    {isSubmitting ? 'Logging in...' : 'Login'}
+                    {formikProps.isSubmitting ? 'Logging in...' : 'Login'}
                   </button>
 
                   {/* Sign In with Google */}
@@ -176,9 +279,28 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
+    <>
+      <OtpModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        onSubmit={(otpString) => handleOtpSubmit(otpString,currentEmail)} 
+        onResend={resetOTP}
+        otp={otp}
+        setOtp={setOtp}
+        otpError={otpError}
+        timer={timer}
+        isExpired={isExpired}
+      />
+      {isPasswordModalOpen && (
+        <PasswordResetModal
+          email={currentEmail}
+          onClose={() => setIsPasswordModalOpen(false)}
+          onSubmit={handlePasswordReset}
+        />
+      )}
+    </>
     </div>
   );
 };
 
 export default Login;
-
