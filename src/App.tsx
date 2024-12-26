@@ -26,6 +26,7 @@ import CoursesPage from './pages/instructor/CoursesPage';
 import AddCoursePage from './pages/instructor/AddCourses';
 import InstructorRequestStatus from './pages/instructor/InstructorReqStatus';
 import Teach from './pages/user/Teach';
+import CategoriesPage from './pages/admin/Category';
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
@@ -115,6 +116,11 @@ const router = (user: any) =>
             path: 'instructors',
             element: <Instructors />,
           },
+          {
+            path: 'category',
+            element: <CategoriesPage />
+          }
+          ,
           {
             path: 'courses',
             element: <Courses />,
