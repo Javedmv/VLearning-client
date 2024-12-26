@@ -4,9 +4,9 @@ import {
   Users,
   GraduationCap,
   BookOpen,
-  MessageSquare,
+  // MessageSquare,
   Settings,
-  BarChart2,
+  // BarChart2,
   LogOut,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
