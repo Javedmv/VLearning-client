@@ -7,14 +7,34 @@ import { AppDispatch, RootState } from '../../redux/store';
 import {GraduationCap} from "lucide-react"
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { commonRequest,  URL } from '../../common/api';
-import { configMultiPart } from '../../common/configurations';
+// import { commonRequest,  URL } from '../../common/api';
+// import { configMultiPart } from '../../common/configurations';
 import trimValuesToFormData from '../../common/trimValues';
 // import { updateFormData } from '../../redux/actions/user/userAction';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { userForm } from '../../redux/actions/user/userAction';
+
+export const qualifications: string[] = [
+  "BCom",
+  "BCA",
+  "MCom",
+  "MCA",
+  "BA",
+  "BSc",
+  "MBA",
+  "BBA",
+  "BTech",
+  "MTech",
+  "PhD",
+  "Diploma",
+  "MSc",
+  "Engineering",
+  "Medicine",
+  "10th",
+  "+2",
+];
 
 export interface FormValues {
     username: string;
@@ -40,6 +60,7 @@ export interface FormValues {
     profession: string;
     profileDescription?: string;
     cv?: string;
+    qualification:string;
 }
 
 export const validationSchema = Yup.object().shape({
@@ -70,7 +91,8 @@ export const validationSchema = Yup.object().shape({
     }),
     additionalEmail: Yup.string()
     .email('Invalid email')
-    .notOneOf([Yup.ref('email')],'Additional email cannot be the same as the primary email')
+    .notOneOf([Yup.ref('email')],'Additional email cannot be the same as the primary email'),
+    qualification : Yup.string().required("Qualification is required")
   });
 
 const UserForm: React.FC = () => {
@@ -101,19 +123,19 @@ const UserForm: React.FC = () => {
     profession: '',
     profileDescription: '',
     cv: '',
+    qualification:''
   };
 
   const handleSubmit = async (values: FormValues) => {
     try {
-      console.log(values, "values");
       const userCredentials = trimValuesToFormData(values);
       userCredentials.append("isNewUser", "false");
       await dispatch(userForm(userCredentials))
       .then(() => {
         toast.success("Form Completed Successfully!");
-        navigate("/");
+        navigate("/")
       }).catch((error:any) => {
-        toast.error(error?.message)
+        toast.error(error?.response?.data?.message || error?.message)
       })
       // const res = await commonRequest("POST", `${URL}/auth/multipart/user-form`, userCredentials, configMultiPart);
       
@@ -211,14 +233,35 @@ const UserForm: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                  <Field
-                    name="phoneNumber"
-                    className="mt-1 block w-full rounded-md p-2 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-md"
-                    type="tel"
-                  />
-                  <ErrorMessage name="phoneNumber" component="div" className="mt-1 text-sm text-red-600" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Qualification</label>
+                    <Field
+                      as="select"
+                      name="qualification"
+                      className="mt-1 block w-full rounded-md p-2 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-md"
+                    >
+                      <option value="" >
+                        Select your Qualification
+                      </option>
+                      {qualifications.map((qualification) => (
+                        <option key={qualification} value={qualification}>
+                          {qualification}
+                        </option>
+                      ))}
+                    </Field>
+                    <ErrorMessage name="qualification" component="div" className="mt-1 text-sm text-red-600" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <Field
+                      name="phoneNumber"
+                      className="mt-1 block w-full rounded-md p-2 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-md"
+                      type="tel"
+                    />
+                    <ErrorMessage name="phoneNumber" component="div" className="mt-1 text-sm text-red-600" />
+                  </div>
                 </div>
               </div>
 

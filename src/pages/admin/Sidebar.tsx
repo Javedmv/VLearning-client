@@ -67,7 +67,7 @@ const Sidebar: React.FC = () => {
               <span>Instructors</span>
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link
               to="/admin/courses"
               className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors"
@@ -93,7 +93,7 @@ const Sidebar: React.FC = () => {
               <BarChart2 className="w-5 h-5" />
               <span>Analytics</span>
             </Link>
-          </li>
+          </li> */}
           <li>
             <Link
               to="/admin/settings"

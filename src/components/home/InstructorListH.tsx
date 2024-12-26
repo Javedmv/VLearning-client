@@ -81,8 +81,8 @@ const InstructorList: React.FC = () => {
               {/* Image */}
               <div className="mb-4">
                 <img
-                  src={instructor.image}
-                  alt={instructor.name}
+                  src={instructor?.image}
+                  alt={instructor?.name}
                   className="w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 object-cover rounded-full border border-black"
                 />
               </div>
@@ -90,10 +90,10 @@ const InstructorList: React.FC = () => {
               {/* Instructor Details */}
               <div className="text-center">
                 {/* Instructor Name */}
-                <h3 className="text-sm md:text-base lg:text-lg font-semibold mb-1">{instructor.instructorName}</h3>
+                <h3 className="text-sm md:text-base lg:text-lg font-semibold mb-1">{instructor?.instructorName}</h3>
 
                 {/* Course Name */}
-                <p className="text-gray-600 text-xs md:text-sm lg:text-base mb-2">{instructor.name}</p>
+                <p className="text-gray-600 text-xs md:text-sm lg:text-base mb-2">{instructor?.name}</p>
 
                 {/* Rating */}
                 <div className="flex items-center justify-center">
@@ -104,7 +104,7 @@ const InstructorList: React.FC = () => {
                   >
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
-                  <span className="ml-2 text-gray-500">{instructor.rating.toFixed(1)}</span>
+                  <span className="ml-2 text-gray-500">{instructor?.rating.toFixed(1)}</span>
                 </div>
               </div>
             </div>

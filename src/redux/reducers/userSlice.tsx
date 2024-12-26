@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import {  loginUser, signUpUser, getUserDataFirst ,logout ,userForm } from "../actions/user/userAction";
+import {  loginUser, signUpUser, getUserDataFirst ,logout ,userForm, teach, reapplyInstructor } from "../actions/user/userAction";
 
 const initialState = {
     loading: false as Boolean,
@@ -21,7 +21,6 @@ const userSlice = createSlice({
             state.loading = true;
         })
         .addCase(signUpUser.fulfilled, (state, {payload}) => {
-            console.log(payload, "payload of the userSlice")
             state.loading = false;
             state.error = null;
             state.user = payload;
@@ -79,6 +78,33 @@ const userSlice = createSlice({
             state.user = payload;
         })
         .addCase(userForm.rejected, (state, {payload}) => {
+            state.loading = false;
+            state.user = null;
+            state.error = payload;
+        }).addCase(teach.pending, (state) => {
+            state.loading = true;
+        })
+        .addCase(teach.fulfilled, (state, {payload}) => {
+            console.log(payload,"payload in the rosponse teach")
+            state.loading = false;
+            state.error = null;
+            state.user = payload;
+        })
+        .addCase(teach.rejected, (state, {payload}) => {
+            state.loading = false;
+            state.user = null;
+            state.error = payload;
+        })
+        .addCase(reapplyInstructor.pending, (state) => {
+            state.loading = true;
+        })
+        .addCase(reapplyInstructor.fulfilled, (state, {payload}) => {
+            console.log(payload,"payload in the rosponse reappy instrctor")
+            state.loading = false;
+            state.error = null;
+            state.user = payload;
+        })
+        .addCase(reapplyInstructor.rejected, (state, {payload}) => {
             state.loading = false;
             state.user = null;
             state.error = payload;

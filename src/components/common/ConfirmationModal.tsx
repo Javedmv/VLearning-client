@@ -26,7 +26,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <>
       <button type="button" onClick={handleOpen}
-        className={`px-4 py-2 rounded transition ${
+        className={`px-3 py-2 rounded transition ${
           triggerText === "Unblock" || triggerText === "Approve"
             ? "bg-green-700 hover:bg-green-800" 
             : "bg-red-600 hover:bg-red-700"

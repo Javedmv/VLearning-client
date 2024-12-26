@@ -123,6 +123,7 @@ const Signup: React.FC = () => {
     try {
       // sending to backend for email
       const response = await dispatch(signUpUser(formData));
+      console.log(response)
       if(response.meta.requestStatus === "fulfilled"){
         toast.success("OTP sent successfully. Please check your email.");
         setShowOtpModal(true);
