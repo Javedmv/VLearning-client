@@ -11,7 +11,7 @@ const LandingPage:React.FC = () => {
     const {user} = useSelector((state:RootState) => state.user);
     // const [myUser, SetMyUser] = useState({})
 
-    console.log(user, 'user in landing page')
+    // console.log(user, 'user in landing page')
     
     useEffect(() => {
         

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../../redux/store";
 import { logout } from "../../redux/actions/user/userAction";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 interface NavbarProps {
@@ -13,19 +14,21 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({User}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
-  // const navigate = useNavigate()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // navigate("/")
+  },[])
 
   const handleLogout = () => {
     try {
       dispatch(logout())
-      .then(() => toast.success("Logout Successfully"))
+      toast.success("Logout Successfully")
+      navigate("/")
     } catch (error) {
       console.error(error,"ERROR in HANDLE LOGOUT")
     }
   }
-  useEffect(() => {
-    // navigate("/")
-  },[])
 
 
   const toggleMenu = () => {
@@ -33,7 +36,8 @@ const Navbar: React.FC<NavbarProps> = ({User}) => {
   };
 
   return (
-    <nav className="w-full bg-pink-200 p-4 fixed top-0 z-50">
+    // give fixed
+    <nav className="w-full bg-pink-200 p-4 top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center">
           {/* Logo Section */}
@@ -72,24 +76,39 @@ const Navbar: React.FC<NavbarProps> = ({User}) => {
               About Us
             </a>
             { 
-                User?.role === "instructor"?
+                User?.role === "instructor" && User.isVerified === "approved"?
                 (
-                  <a
-                  href="#"
-                  className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
+                  <Link
+                  to="/instructor"
+                  className="rounded-md py-1 px-4 bg-fuchsia-800 text-white transition-all"
                   >
                   My Courses
-                  </a>
+                  </Link>
                 ) 
+                : User?.role === "instructor" && (User?.isVerified === "rejected" || User?.isVerified === "requested") ?
+                (
+                  <Link
+                  to="/instructor-req-stat"
+                  className="rounded-md py-1 px-4 bg-fuchsia-800 text-white transition-all"
+                  >
+                  My Courses
+                  </Link>
+                )
                 :
                 (
-                  <a
-                  href="#"
+                  User && User?.role === "student" ?
+                  <Link
+                  to="/teach"
                   className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
                   >
                     Teach
-                  </a>
+                  </Link>
+                  :
+                  <Link className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all" to="/login">
+                    Teach
+                  </Link>
                 )
+                
             }
 
           </div>
@@ -98,7 +117,7 @@ const Navbar: React.FC<NavbarProps> = ({User}) => {
           {User?.isNewUser === false && (User?.role === "student" || User?.role === "instructor")?
               (<div className="hidden lg:flex items-end space-x-3">
 
-              <div className="flex items-center space-x-3 bg-fuchsia-300 px-3 py-0.5 rounded-lg">
+              <Link to={"/profile"} title="Profile" className="flex items-center space-x-3 bg-fuchsia-300 px-3 py-0.5 rounded-lg">
                 <span className="text-fuchsia-900 font-medium"> {User?.username ? User.username.charAt(0).toUpperCase() + User.username.slice(1) : ''}</span>
                 {/* <img
                   src={User?.avatarUrl || "https://via.placeholder.com/40"} // Default avatar if none is provided
@@ -108,7 +127,7 @@ const Navbar: React.FC<NavbarProps> = ({User}) => {
                 <div className="w-10 h-10 rounded-full bg-gray-300 font-bold flex items-center justify-center">
                 {User?.username?.charAt(0).toUpperCase()}
                 </div>
-              </div>
+              </Link>
 
           
               <button

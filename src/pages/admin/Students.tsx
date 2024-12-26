@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, MoreVertical } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
@@ -17,6 +17,7 @@ interface Student {
     avatar: string;
   };
   _id: string;
+  qualification?:string;
 }
 
 const Students: React.FC = () => {
@@ -27,12 +28,16 @@ const Students: React.FC = () => {
     const fetchStudents = async () => {
       try {
         const res = await commonRequest("GET", `${URL}/auth/students`, null, config);
-        setStudents(res.data);
+        console.log(res.data)
+        setStudents((prev) => [
+          ...prev,
+          ...res.data
+        ]);
       } catch (error) {
         console.error("Failed to fetch students: in ADMIN/STUDENTS", error);
       }
     };
-  
+
     fetchStudents();
   }, []);
 
@@ -122,8 +127,7 @@ const Students: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student?.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student?.profession}</td>
-                  
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${student?.qualification ? "text-gray-500": "text-red-500"}`}> {student?.qualification || "value not provided"}</td>                  
                   {student.isBlocked ? (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="w-20 inline-flex justify-center text-xs leading-5 font-semibold rounded-full bg-red-200 text-red-800 px-2">

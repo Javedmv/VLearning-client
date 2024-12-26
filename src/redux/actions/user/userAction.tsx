@@ -42,7 +42,6 @@ export const getUserDataFirst = createAsyncThunk("user/getUserDataFirst", async(
             rejectWithValue,
             config
         )
-        console.log(response, "response return in landing page of redux")
         return response
     } catch (error) {
         return rejectWithValue(error)
@@ -60,9 +59,41 @@ export const logout = createAsyncThunk("user/logout", async( _ , {rejectWithValu
 
 export const userForm = createAsyncThunk("user/updateFormData", async(userCredentials: any ,{rejectWithValue}) => {
     try {
-        await commonReduxRequest("POST",`${URL}/auth/multipart/user-form`,rejectWithValue,userCredentials, configMultiPart)
+        const response = await commonReduxRequest("POST",`${URL}/auth/multipart/user-form`,rejectWithValue,userCredentials, configMultiPart)
+        return response
     } catch (error) {
         console.log(error,"error in redux");        
+        return rejectWithValue(error)
+    }
+})
+
+// export const updateUserProfile = createAsyncThunk("user/updateProfile", async(userCredentials: any, {rejectWithValue}) => {
+//     try {
+//         const response = await commonReduxRequest("POST",`${URL}/auth/profile/${userCredentials._id!}`,rejectWithValue, userCredentials, config)
+//         console.log(response,"======================")
+//     } catch (error) {
+//         console.log(error,"error in redux profileUpdate");        
+//         return rejectWithValue(error)
+//     }
+// })
+
+
+export const teach = createAsyncThunk("user/teach", async(userCredentials:FormData, {rejectWithValue}) =>  {
+    try {
+        const response = await commonReduxRequest("POST",`${URL}/auth/multipart/apply-teach`,rejectWithValue, userCredentials, configMultiPart)
+        return response
+    } catch (error) {
+        console.log(error,"error in redux");
+        return rejectWithValue(error)
+    }
+})
+
+export const reapplyInstructor = createAsyncThunk("user/reapplyInstructor", async(userCredentials:FormData, {rejectWithValue}) =>  {
+    try {
+        const response = await commonReduxRequest("POST",`${URL}/auth/multipart/instructor-reapply`,rejectWithValue, userCredentials, configMultiPart)
+        return response
+    } catch (error) {
+        console.log(error,"error in redux");
         return rejectWithValue(error)
     }
 })

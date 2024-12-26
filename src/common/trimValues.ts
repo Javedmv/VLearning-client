@@ -38,15 +38,15 @@ const trimValuesToFormData = (values: NestedValues, parentKey: string = ''): For
       }
     } else if (values[key] !== undefined) {
       // Append other types
-      console.log(fullKey)
+      // console.log(fullKey)
       formData.append(fullKey, values[key]);
     }
   }
 
   // Log all entries in formData
-  for (const [key, value] of formData.entries()) {
-    console.log(`FormData Entry - Key: ${key}, Value:`, value);
-  }
+  // for (const [key, value] of formData.entries()) {
+  //   console.log(`FormData Entry - Key: ${key}, Value:`, value);
+  // }
 
   return formData;
 };

@@ -1,5 +1,5 @@
 interface FutureFlags {
-    v7_startTransition?: boolean;
+  v7_startTransition?: boolean;
     v7_relativeSplatPath?: boolean;
     v7_fetcherPersist?: boolean;
     v7_normalizeFormMethod?: boolean;
@@ -8,7 +8,7 @@ interface FutureFlags {
   }
 
 const future: FutureFlags = {
-    v7_startTransition: true,
+  v7_startTransition: true,
     v7_relativeSplatPath: true,
     v7_fetcherPersist: true,
     v7_normalizeFormMethod: true,
