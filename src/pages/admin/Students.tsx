@@ -29,8 +29,7 @@ const Students: React.FC = () => {
       try {
         const res = await commonRequest("GET", `${URL}/auth/students`, null, config);
         console.log(res.data)
-        setStudents((prev) => [
-          ...prev,
+        setStudents(() => [
           ...res.data
         ]);
       } catch (error) {
