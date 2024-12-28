@@ -14,6 +14,12 @@ const trimValuesToFormData = (values: NestedValues, parentKey: string = ''): For
       formData.append('files.' + key, values[key]);
       continue;
     }
+    // Special handing for imageUrl for (category)
+    if ((key == 'imageUrl') && values[key] instanceof File) {
+      console.log("inside the imageUrl========================================")
+      formData.append('files.category' , values[key]);
+      continue;
+    }
 
     // Check if the current key is a parent key that should be omitted
     if (omitParentKeys.includes(key)) {
@@ -44,9 +50,9 @@ const trimValuesToFormData = (values: NestedValues, parentKey: string = ''): For
   }
 
   // Log all entries in formData
-  // for (const [key, value] of formData.entries()) {
-  //   console.log(`FormData Entry - Key: ${key}, Value:`, value);
-  // }
+  for (const [key, value] of formData.entries()) {
+    console.log(`FormData Entry - Key: ${key}, Value:`, value);
+  }
 
   return formData;
 };

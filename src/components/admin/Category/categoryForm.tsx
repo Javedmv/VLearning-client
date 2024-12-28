@@ -1,4 +1,8 @@
 import React, { useState, useRef } from 'react';
+import { commonRequest, URL } from '../../../common/api';
+import { configMultiPart } from '../../../common/configurations';
+import toast from 'react-hot-toast';
+import trimValuesToFormData from '../../../common/trimValues';
 
 interface CategoryFormProps {
   onSubmit: (category: any) => void;
@@ -33,33 +37,45 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ onSubmit }) => {
   };
 
   // Function to validate the form fields
-  const validate = () => {
-    const newErrors: { name?: string; description?: string; imageUrl?: string } = {};
-    if (!name) newErrors.name = 'Name is required';
-    if (!description) newErrors.description = 'Description is required';
-    if (!imageUrl) newErrors.imageUrl = 'Image is required';
+  // const validate = () => {
+  //   const newErrors: { name?: string; description?: string; imageUrl?: string } = {};
+  //   if (!name) newErrors.name = 'Name is required';
+  //   if (!description) newErrors.description = 'Description is required';
+  //   if (!imageUrl) newErrors.imageUrl = 'Image is required';
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  //   setErrors(newErrors);
+  //   return Object.keys(newErrors).length === 0;
+  // };
 
   // Function to handle form submission
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!validate()) return;
-
-    onSubmit({
-      name,
-      description,
-      imageUrl,
-      status,
-    });
+  const handleSubmit =async (event: React.FormEvent) => {
+    try {
+      event.preventDefault();
+    // if (!validate()) return;
+    const categoryData = {name, description,imageUrl,status}
+    console.log(categoryData)
+    const result = trimValuesToFormData(categoryData)
+    const response = await commonRequest("POST",`${URL}/course/multipart/add-category`,result,configMultiPart)
+    if(response.status){
+      onSubmit({
+        name,
+        description,
+        imageUrl,
+        status,
+      });
+      toast.success(response?.message)
+    }else{
+      toast.error(response?.message || "Failed to add category")
+    }
 
     // Reset form fields after submission
     setName('');
     setDescription('');
     setImageUrl('');
     setStatus(true);
+    } catch (error:any) {
+      toast.error("CATCH ERROR")
+    }
   };
 
   return (
