@@ -15,8 +15,7 @@ const trimValuesToFormData = (values: NestedValues, parentKey: string = ''): For
       continue;
     }
     // Special handing for imageUrl for (category)
-    if ((key == 'imageUrl') && values[key] instanceof File) {
-      console.log("inside the imageUrl========================================")
+    if ((key === 'imageFile') && values[key] instanceof File) {
       formData.append('files.category' , values[key]);
       continue;
     }
