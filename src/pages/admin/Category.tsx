@@ -6,6 +6,7 @@ import { config, configMultiPart } from '../../common/configurations';
 import toast from 'react-hot-toast';
 
 interface Category {
+  _id?: string;
   name: string;
   description: string;
   imageUrl: File | null;
@@ -14,6 +15,7 @@ interface Category {
 }
 
 export interface DisplayCategory {
+  _id?: string;
   name: string;
   description: string;
   imageUrl: string;
@@ -74,6 +76,8 @@ const CategoriesPage: React.FC = () => {
     }
   };
 
+  
+
   return (
     <div className="p-6">
       <div className="max-w-7xl mx-auto">
@@ -82,7 +86,10 @@ const CategoriesPage: React.FC = () => {
         <div className="mt-8 p-3 bg-gray-300">
           <h2 className="text-xl font-semibold underline mb-4">All Categories</h2>
           {categories.length > 0 ? (
-            <CategoryList categories={categories} />
+            <CategoryList 
+            categories={categories} 
+            onRefetch={fetchCategory} 
+          />
           ) : (
             'Category does not exist, please add one.'
           )}
