@@ -1,9 +1,6 @@
 import React, { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, X } from 'lucide-react'; // Make sure to import these icons from lucide-react
-import trimValuesToFormData from '../../../common/trimValues';
-import { commonRequest, URL } from '../../../common/api';
-import { configMultiPart } from '../../../common/configurations';
 
 interface CategoryFormProps {
   onSubmit: (category: any) => void;
@@ -55,11 +52,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ onSubmit }) => {
   const handleSubmit = async (event: React.FormEvent) => {
     try {
       event.preventDefault();
-      // if (!validate()) return;
-      const results = trimValuesToFormData({name,description,imageFile, status})
-      const resposne = await commonRequest("POST",`${URL}/course/multipart/add-category`,results, configMultiPart)
-      console.log(resposne)
-
+      if (!validate()) return;
       // Convert image to base64 before submitting
       if (imageFile) {
         const reader = new FileReader();
@@ -67,7 +60,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ onSubmit }) => {
           onSubmit({
             name,
             description,
-            imageUrl: reader.result,
+            imageUrl: imageFile,
             status,
           });
         };
