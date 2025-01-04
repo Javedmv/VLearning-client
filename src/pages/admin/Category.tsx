@@ -21,6 +21,7 @@ export interface DisplayCategory {
   imageUrl: string;
   status: boolean;
   count: number;
+  updatedAt?: string;
 }
 
 const CategoriesPage: React.FC = () => {
