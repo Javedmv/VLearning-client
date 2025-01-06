@@ -23,7 +23,7 @@ import ProfilePage from './pages/common/ProfilePage';
 import DashboardLayout from './pages/instructor/DashboardLayout';
 import DashboardPage from './pages/instructor/Dashboard';
 import CoursesPage from './pages/instructor/CoursesPage';
-import AddCoursePage from './pages/instructor/AddCourses';
+import AddCoursePage from './pages/instructor/AddCoursesPage';
 import InstructorRequestStatus from './pages/instructor/InstructorReqStatus';
 import Teach from './pages/user/Teach';
 import CategoriesPage from './pages/admin/Category';

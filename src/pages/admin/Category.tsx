@@ -84,7 +84,7 @@ const CategoriesPage: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Category Management</h1>
         <CategoryForm onSubmit={handleAddCategory} />
-        <div className="mt-8 p-3 bg-gray-300">
+        <div className="mt-8 p-3 bg-gray-300 rounded-lg">
           <h2 className="text-xl font-semibold underline mb-4">All Categories</h2>
           {categories.length > 0 ? (
             <CategoryList 

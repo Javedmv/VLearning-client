@@ -17,11 +17,6 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
   onEdit,
   onDelete
 }) => {
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      onDelete?.(category._id || '');
-    }
-  };
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -56,7 +51,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           </button>
           
           <button
-            onClick={handleDelete}
+            onClick={() => onDelete?.(category?._id || '')}
             className="p-2 bg-white rounded-full hover:bg-gray-100 transform hover:scale-105 transition-transform"
             title="Delete Category"
           >

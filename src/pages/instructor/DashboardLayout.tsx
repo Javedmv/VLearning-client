@@ -10,7 +10,6 @@ interface DashboardProps {
 const DashboardLayout: React.FC <DashboardProps>= ({user}) => {
   return (
     <>
-      <Navbar User={user}/>
     <div className="flex flex-col md:flex-row min-h-screen bg-pink-200">
       <Sidebar />
       <div className="flex-1 overflow-auto">
