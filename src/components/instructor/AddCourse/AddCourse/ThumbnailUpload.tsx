@@ -1,4 +1,3 @@
-// ThumbnailUpload.tsx
 import React, { useRef } from 'react';
 import { Upload, X } from 'lucide-react';
 
@@ -11,7 +10,7 @@ interface ThumbnailUploadProps {
 const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
   thumbnailPreview,
   onThumbnailChange,
-  onThumbnailRemove
+  onThumbnailRemove,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -21,14 +20,23 @@ const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
       <div className="flex flex-col items-center gap-2">
         {thumbnailPreview ? (
           <>
-            <img src={thumbnailPreview} alt="Thumbnail preview" className="w-40 h-40 object-cover" />
-            <button
-              type="button"
-              onClick={onThumbnailRemove}
-              className="absolute top-0 right-0 text-red-500"
-            >
-              <X />
-            </button>
+            <img src={thumbnailPreview} alt="Thumbnail preview" className="w-40 h-40 object-cover rounded-md" />
+            <div className="flex justify-between w-full mt-2">
+              <button
+                type="button"
+                onClick={onThumbnailRemove}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700"
+              >
+                Change Thumbnail
+              </button>
+            </div>
           </>
         ) : (
           <button

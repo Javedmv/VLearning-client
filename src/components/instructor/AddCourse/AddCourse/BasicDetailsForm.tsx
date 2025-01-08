@@ -1,23 +1,38 @@
 // BasicDetailsForm.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Field } from 'formik';
 import ISO6391 from 'iso-639-1';
+import { commonRequest,URL } from '../../../../common/api';
+import { config } from '../../../../common/configurations';
 
 const languages = ISO6391.getAllNames();
-const categories = [
-  'Programming',
-  'Design',
-  'Business',
-  'Marketing',
-  'Music',
-  'Photography',
-  'Personal Development',
-  'Health & Fitness',
-  'Language Learning',
-  'Other'
-];
+
+interface Category {
+  _id: string,
+  name: string
+}
 
 const BasicDetailsForm: React.FC = () => {
+  const [categories, setCategories] = useState([]);
+
+  const fetchCategory = async () => {
+    try {
+      const res = await commonRequest('GET', `${URL}/course/get-category-status-true`, {}, config);
+      // const fetchedCategories = res.data.map((cat: any) => ({
+      //   ...cat,
+      //   imageUrl: cat.imageUrl || '', // Ensure imageUrl is a string
+      // }));
+      console.log(res.data , "fetched category")
+      setCategories(res.data);
+    } catch (error) {
+      console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategory();
+  },[])
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
@@ -77,9 +92,9 @@ const BasicDetailsForm: React.FC = () => {
           className="w-full p-2 border rounded-md focus:ring-2 focus:ring-fuchsia-500"
         >
           <option value="">Select category</option>
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
+          {categories.map((category: Category) => (
+            <option key={category._id} value={category._id}>
+              {category.name}
             </option>
           ))}
         </Field>

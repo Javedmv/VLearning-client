@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
-import { AddCourseSchema } from './validation';
-import ThumbnailUpload from './ThumbnailUpload';
-import BasicDetailsForm from './BasicDetailsForm';
-import LearningPoints from './LearningPoints';
-import { BasicDetails } from '../../../../types/Courses';
+import { AddCourseSchema } from './AddCourse/validation';
+import ThumbnailUpload from './AddCourse/ThumbnailUpload';
+import BasicDetailsForm from './AddCourse/BasicDetailsForm';
+import LearningPoints from './AddCourse/LearningPoints';
+import { BasicDetails } from '../../../types/Courses';
 
 interface AddCourseProps {
   onSubmit: (values: BasicDetails) => void; // Accept BasicDetails here
@@ -15,20 +15,29 @@ interface AddCourseProps {
 const AddCourse: React.FC<AddCourseProps> = ({ onSubmit, onNext, courseData }) => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
-  const handleThumbnailChange = (file: File, setFieldValue: (field: string, value: any) => void) => {
+  const handleThumbnailChange = (
+    file: File,
+    setFieldValue: (field: string, value: any) => void
+  ) => {
     const reader = new FileReader();
+  
     reader.onloadend = () => {
-      setThumbnailPreview(reader.result as string);
+      const preview = reader.result as string;
+      setThumbnailPreview(preview); // Update local thumbnail preview state
+      setFieldValue('thumbnail', file); // Update Formik field for thumbnail
+      setFieldValue('thumbnailPreview', preview); // Update Formik field for thumbnail preview
     };
+  
     reader.readAsDataURL(file);
-    setFieldValue('thumbnail', file);
   };
+  
 
   const initialValues = {
     title: courseData.title || '',
     description: courseData.description || '',
     category: courseData.category || '',
     thumbnail: courseData.thumbnail || null,
+    thumbnailPreview: courseData.thumbnailPreview || null,
     language: courseData.language || '',
     whatWillLearn: courseData.whatWillLearn || [],
   };
@@ -59,6 +68,7 @@ const AddCourse: React.FC<AddCourseProps> = ({ onSubmit, onNext, courseData }) =
               onThumbnailRemove={() => {
                 setThumbnailPreview(null);
                 setFieldValue('thumbnail', null);
+                setFieldValue('thumbnailPreview' , null);
               }}
             />
 

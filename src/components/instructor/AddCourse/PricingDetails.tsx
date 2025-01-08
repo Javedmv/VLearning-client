@@ -6,23 +6,25 @@ import { PricingDetail } from '../../../types/Courses'; // Assuming your types a
 
 const PricingSchema = Yup.object().shape({
   type: Yup.string().required('Please select a pricing type'),
-  
-  amount: Yup.number().test(
-    'price-required',
-    'Price is required when pricing type is paid',
-    function(value) {
-      const { type } = this.parent;
-      if (type === 'paid') {
-        return value !== undefined && value >= 0;
+
+  amount: Yup.number()
+    .test(
+      'price-required',
+      'Price is required and must be greater than 0 when pricing type is paid',
+      function (value) {
+        const { type } = this.parent;
+        if (type === 'paid') {
+          return value !== undefined && value > 0;
+        }
+        return true; // No validation for 'amount' when type is not 'paid'
       }
-      return true; // No validation for 'amount' when type is not 'paid'
-    }
-  ),
+    )
+    .typeError('Amount must be a number'),
 
   subscriptionType: Yup.string().test(
     'subscription-required',
     'Please select a subscription type when pricing type is paid',
-    function(value) {
+    function (value) {
       const { type } = this.parent;
       if (type === 'paid') {
         return value !== undefined && value.length > 0;
@@ -33,6 +35,7 @@ const PricingSchema = Yup.object().shape({
 
   hasLifetimeAccess: Yup.boolean(),
 });
+
 
 interface PricingDetailsProps {
   onSubmit: (values: PricingDetail) => void;
@@ -100,6 +103,8 @@ const PricingDetails: React.FC<PricingDetailsProps> = ({ onSubmit, onBack, onNex
             </div>
 
             {/* Conditional Pricing Fields */}
+            {errors.type && touched.type && <div className="text-red-500 text-sm">{errors.type}</div>}
+
             {values.type === 'paid' && (
               <>
                 <div>
@@ -111,19 +116,23 @@ const PricingDetails: React.FC<PricingDetailsProps> = ({ onSubmit, onBack, onNex
                     <Field
                       type="number"
                       name="amount"
-                      className="block w-full pl-10 pr-12 py-2 border rounded-md"
+                      className={`block w-full pl-10 pr-12 py-2 border rounded-md ${
+                        errors.amount && touched.amount ? 'border-red-500' : ''
+                      }`}
                       placeholder="0.00"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                       <span className="text-gray-500 sm:text-sm">IND</span>
                     </div>
                   </div>
+                  {errors.amount && touched.amount && <div className="text-red-500 text-sm">{errors.amount}</div>}
                 </div>
 
                 {/* Subscription Type */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
                   <div className="grid grid-cols-2 gap-4">
+                    {/* One-time Payment Option */}
                     <label className="relative flex items-center justify-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                       <Field
                         type="radio"
@@ -131,7 +140,11 @@ const PricingDetails: React.FC<PricingDetailsProps> = ({ onSubmit, onBack, onNex
                         value="one-time"
                         className="sr-only"
                       />
-                      <div className={`flex flex-col items-center ${values.subscriptionType === 'one-time' ? 'text-fuchsia-600' : 'text-gray-500'}`}>
+                      <div
+                        className={`flex flex-col items-center ${
+                          values.subscriptionType === 'one-time' ? 'text-fuchsia-600' : 'text-gray-500'
+                        }`}
+                      >
                         <IndianRupee className="h-6 w-6 mb-1" />
                         <span className="text-sm font-medium">One-time Payment</span>
                       </div>
@@ -140,6 +153,7 @@ const PricingDetails: React.FC<PricingDetailsProps> = ({ onSubmit, onBack, onNex
                       )}
                     </label>
 
+                    {/* Subscription Option */}
                     <label className="relative flex items-center justify-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                       <Field
                         type="radio"
@@ -147,15 +161,22 @@ const PricingDetails: React.FC<PricingDetailsProps> = ({ onSubmit, onBack, onNex
                         value="subscription"
                         className="sr-only"
                       />
-                      <div className={`flex flex-col items-center ${values.subscriptionType === 'subscription' ? 'text-fuchsia-600' : 'text-gray-500'}`}>
-                        <span className="text-lg font-medium">Subscription</span>
-                        <span className="text-sm">Set recurring payments</span>
+                      <div
+                        className={`flex flex-col items-center ${
+                          values.subscriptionType === 'subscription' ? 'text-fuchsia-600' : 'text-gray-500'
+                        }`}
+                      >
+                        <Clock className="h-6 w-6 mb-1" />
+                        <span className="text-sm font-medium">Subscription</span>
                       </div>
                       {values.subscriptionType === 'subscription' && (
                         <div className="absolute inset-0 border-2 border-fuchsia-600 rounded-lg pointer-events-none" />
                       )}
                     </label>
                   </div>
+                  {errors.subscriptionType && touched.subscriptionType && (
+                    <div className="text-red-500 text-sm">{errors.subscriptionType}</div>
+                  )}
                 </div>
               </>
             )}

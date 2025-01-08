@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, DollarSign, Play, Book, Globe, Tag } from 'lucide-react';
+import { Clock, Infinity, Play, Book, Globe, Tag } from 'lucide-react';
 import { CourseData } from '../../../types/Courses';
 
 interface PreviewProps {
@@ -16,11 +16,11 @@ const Preview: React.FC<PreviewProps> = ({ courseData, onBack, onSubmit }) => {
     <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
       {/* Course Header */}
       <div className="relative h-64 bg-gradient-to-r from-fuchsia-600 to-pink-600">
-        {courseData?.basicDetails?.thumbnail && (
+        {courseData?.basicDetails?.thumbnailPreview && (
           <img
-            src={courseData.basicDetails.thumbnail}
+            src={courseData.basicDetails.thumbnailPreview}
             alt={courseData.basicDetails.title}
-            className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50"
+            className="absolute inset-0 w-full h-full object-cover opacity-80"
           />
         )}
         <div className="absolute inset-0 bg-black bg-opacity-40" />
@@ -100,7 +100,7 @@ const Preview: React.FC<PreviewProps> = ({ courseData, onBack, onSubmit }) => {
               ) : (
                 <div className="space-y-1">
                   <div className="text-3xl font-bold text-fuchsia-600">
-                    ${pricing?.amount}
+                  ₹ {pricing?.amount}
                   </div>
                   <div className="text-sm text-gray-500">
                     {pricing?.subscriptionType === 'one-time' ? 'One-time payment' : 'Subscription'}
@@ -112,7 +112,7 @@ const Preview: React.FC<PreviewProps> = ({ courseData, onBack, onSubmit }) => {
             <div className="text-sm text-gray-600 space-y-2">
               {pricing?.hasLifetimeAccess && (
                 <div className="flex items-center">
-                  <DollarSign className="w-4 h-4 mr-2" />
+                  <Infinity className="w-4 h-4 mr-2" />
                   <span>Lifetime Access</span>
                 </div>
               )}

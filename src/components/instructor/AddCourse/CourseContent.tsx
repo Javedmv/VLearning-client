@@ -1,19 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Formik, Form, Field, FieldArray, FormikErrors, FormikTouched } from 'formik';
 import * as Yup from 'yup';
 import { Plus, Trash2, Upload } from 'lucide-react';
-
-interface Lesson {
-  title: string;
-  description: string;
-  duration: string;
-  videoUrl: string;
-  isIntroduction: boolean;
-}
-
-interface CourseContents {
-  lessons: Lesson[];
-}
+import { Lesson, CourseContents } from '../../../types/Courses';
 
 interface CourseContentProps {
   onSubmit: (values: CourseContents) => void;
@@ -28,9 +17,13 @@ const CourseContentSchema = Yup.object().shape({
       Yup.object().shape({
         title: Yup.string().required('Title is required'),
         description: Yup.string().required('Description is required'),
-        duration: Yup.string().required('Video is required'),
-        videoUrl: Yup.string(),
+        duration: Yup.string().required('Video duration is required'),
+        videoUrl: Yup.string().required('Video URL is required'),
         isIntroduction: Yup.boolean(),
+        videoPreview: Yup.object().shape({
+          url: Yup.string().required('Video preview URL is required'),
+          duration: Yup.string().required('Video preview duration is required'),
+        }),
       })
     )
     .min(1, 'At least one lesson is required'),
@@ -42,7 +35,6 @@ const CourseContent: React.FC<CourseContentProps> = ({
   onNext,
   initialValues,
 }) => {
-  const [videoPreviews, setVideoPreviews] = React.useState<Record<number, { url: string; duration: string }>>({});
   const formikRef = React.useRef<any>(null);
 
   const handleVideoChange = async (
@@ -51,7 +43,7 @@ const CourseContent: React.FC<CourseContentProps> = ({
     setFieldValue: (field: string, value: any) => void
   ) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file instanceof File) {
       const videoUrl = URL.createObjectURL(file);
       const video = document.createElement('video');
       video.src = videoUrl;
@@ -62,13 +54,9 @@ const CourseContent: React.FC<CourseContentProps> = ({
         const seconds = duration % 60;
         const durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-        setVideoPreviews((prev) => ({
-          ...prev,
-          [index]: { url: videoUrl, duration: durationStr },
-        }));
-
-        setFieldValue(`lessons.${index}.videoUrl`, videoUrl);
+        setFieldValue(`lessons.${index}.videoUrl`, file);
         setFieldValue(`lessons.${index}.duration`, durationStr);
+        setFieldValue(`lessons.${index}.videoPreview`, { url: videoUrl, duration: durationStr });
       };
     }
   };
@@ -91,8 +79,9 @@ const CourseContent: React.FC<CourseContentProps> = ({
         title: '',
         description: '',
         duration: '',
-        videoUrl: '',
+        videoUrl: null,
         isIntroduction: true,
+        videoPreview: { url: '', duration: '' },
       },
     ],
   };
@@ -102,7 +91,7 @@ const CourseContent: React.FC<CourseContentProps> = ({
       <h2 className="text-2xl font-bold mb-6">Course Content</h2>
       <Formik
         innerRef={formikRef}
-        initialValues={initialValues as CourseContents}
+        initialValues={initialValues || defaultInitialValues}
         validationSchema={CourseContentSchema}
         onSubmit={onSubmit}
       >
@@ -145,7 +134,7 @@ const CourseContent: React.FC<CourseContentProps> = ({
                               placeholder="Enter lesson title"
                             />
                             {Array.isArray(errors.lessons) &&
-                              errors.lessons[index] && // Check if the error for the current lesson exists
+                              errors.lessons[index] && 
                               touched.lessons?.[index]?.title && (
                                 <div className="text-red-500 text-sm mt-1">
                                   {(errors.lessons[index] as FormikErrors<Lesson>).title}
@@ -174,7 +163,6 @@ const CourseContent: React.FC<CourseContentProps> = ({
                                 </div>
                               )
                             }
-
                           </div>
 
                           <div>
@@ -192,16 +180,16 @@ const CourseContent: React.FC<CourseContentProps> = ({
                                   onChange={(e) => handleVideoChange(e, index, setFieldValue)}
                                 />
                               </label>
-                              {videoPreviews[index] && (
+                              {lesson.videoPreview.url && (
                                 <span className="text-sm text-gray-500">
-                                  Duration: {videoPreviews[index].duration}
+                                  Duration: {lesson.videoPreview.duration}
                                 </span>
                               )}
                             </div>
-                            {videoPreviews[index] && (
+                            {lesson.videoPreview.url && (
                               <video
                                 className="mt-4 rounded-lg max-w-full"
-                                src={videoPreviews[index].url}
+                                src={lesson.videoPreview.url}
                                 controls
                               />
                             )}
@@ -222,6 +210,7 @@ const CourseContent: React.FC<CourseContentProps> = ({
                         duration: '',
                         videoUrl: '',
                         isIntroduction: false,
+                        videoPreview: { url: '', duration: '' },
                       });
                     }}
                     className="flex items-center px-4 py-2 bg-fuchsia-100 text-fuchsia-700 rounded-md hover:bg-fuchsia-200"
