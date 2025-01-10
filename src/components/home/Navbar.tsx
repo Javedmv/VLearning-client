@@ -56,12 +56,12 @@ const Navbar: React.FC<NavbarProps> = ({User}) => {
             >
               Home
             </Link>
-            <a
-              href="#"
+            <Link
+              to="/course"
               className="nav-link rounded-full py-1 px-4 hover:bg-fuchsia-900 hover:text-white transition-all"
             >
               Courses
-            </a>
+            </Link>
             
             <a
               href="#"

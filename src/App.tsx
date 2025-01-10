@@ -27,6 +27,7 @@ import AddCoursePage from './pages/instructor/AddCoursesPage';
 import InstructorRequestStatus from './pages/instructor/InstructorReqStatus';
 import Teach from './pages/user/Teach';
 import CategoriesPage from './pages/admin/Category';
+import CourseHomePage from './pages/common/CourseHomePage';
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
@@ -50,6 +51,10 @@ const router = (user: any) =>
             <LandingPage />
           </>
         ),
+      },
+      {
+        path:"/course",
+        element: <CourseHomePage/>
       },
       {
         path: '/login',

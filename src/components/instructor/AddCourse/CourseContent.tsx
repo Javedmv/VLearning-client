@@ -180,13 +180,13 @@ const CourseContent: React.FC<CourseContentProps> = ({
                                   onChange={(e) => handleVideoChange(e, index, setFieldValue)}
                                 />
                               </label>
-                              {lesson.videoPreview.url && (
+                              {lesson?.videoPreview?.url && (
                                 <span className="text-sm text-gray-500">
                                   Duration: {lesson.videoPreview.duration}
                                 </span>
                               )}
                             </div>
-                            {lesson.videoPreview.url && (
+                            {lesson?.videoPreview?.url && (
                               <video
                                 className="mt-4 rounded-lg max-w-full"
                                 src={lesson.videoPreview.url}

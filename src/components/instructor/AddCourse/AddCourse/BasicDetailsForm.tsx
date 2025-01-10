@@ -22,7 +22,6 @@ const BasicDetailsForm: React.FC = () => {
       //   ...cat,
       //   imageUrl: cat.imageUrl || '', // Ensure imageUrl is a string
       // }));
-      console.log(res.data , "fetched category")
       setCategories(res.data);
     } catch (error) {
       console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);

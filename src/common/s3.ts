@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { CourseData, Lesson } from '../types/Courses';
+import { CourseData } from '../types/Courses';
 
 const S3_BUCKET = import.meta.env.VITE_S3_BUCKET_NAME!;
 const REGION = import.meta.env.VITE_AWS_REGION!;
@@ -41,7 +41,7 @@ export const uploadLessonsToS3 = async (courseData: CourseData) => {
     };
 
     await s3.send(new PutObjectCommand(thumbnailParams));
-    courseData.basicDetails.thumbnail = safeThumbnailName; // Update thumbnail with S3 filename
+    courseData.basicDetails.thumbnail = thumbnailPath; // Update thumbnail with S3 filename
 
     // Upload lessons to S3
     for (const lesson of courseData.courseContent.lessons) {
@@ -73,7 +73,7 @@ export const uploadLessonsToS3 = async (courseData: CourseData) => {
         // Add uploaded lesson to the array
         uploadedLessons.push({
           ...lesson,
-          videoUrl: fileName, // Store only the filename
+          videoUrl: filePath, // Store only the filename
         });
       } catch (lessonError) {
         console.error(`Failed to upload video for lesson "${lesson.title}":`, lessonError);

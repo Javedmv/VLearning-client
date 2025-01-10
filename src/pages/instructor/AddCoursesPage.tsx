@@ -5,16 +5,20 @@ import CourseContent from '../../components/instructor/AddCourse/CourseContent';
 import PricingDetails from '../../components/instructor/AddCourse/PricingDetails';
 import Preview from '../../components/instructor/AddCourse/Preview';
 import ProgressBar from '../../components/instructor/AddCourse/ProgressBar';
-import { BasicDetails, CourseData, CourseContents, PricingDetail } from '../../types/Courses';
+import { BasicDetails, CourseData, CourseContents, PricingDetail, Lesson } from '../../types/Courses';
 import { RootState } from '../../redux/store';
 import { uploadLessonsToS3 } from '../../common/s3';
 import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const STEPS = ['Basic Details', 'Course Content', 'Pricing', 'Preview'];
 
 const AddCoursePage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
+  const navigate = useNavigate();
+
   const [currentStep, setCurrentStep] = useState(0);
   const [courseData, setCourseData] = useState<CourseData>({
     basicDetails: {
@@ -65,6 +69,8 @@ const AddCoursePage: React.FC = () => {
   const handlePublish = async () => {
     try {
       const currentDate = new Date().toISOString();
+  
+      // Prepare metadata for publishing
       const publishData = {
         ...courseData,
         metadata: {
@@ -74,30 +80,62 @@ const AddCoursePage: React.FC = () => {
           updatedAt: currentDate,
         },
       };
-
+  
       console.log('Publishing course:', publishData);
-
-      // Assuming lessons is part of courseData, upload videos for each lesson to S3
+  
+      // Upload lessons to S3 and sanitize lessons
       const updatedLessons = await uploadLessonsToS3(courseData);
-
-      // Once the videos are uploaded, update the courseData with the new lesson data
-      const updatedCourseData = {
+  
+      // Map and sanitize lessons
+      const sanitizedLessons = updatedLessons.courseContent.lessons.map((lesson: any) => {
+        const { videoPreview, ...lessonWithoutPreview } = lesson; // Remove videoPreview
+        return {
+          ...lessonWithoutPreview,
+          videoUrl: lessonWithoutPreview.videoUrl || null, // Ensure videoUrl is compatible with Lesson interface
+        };
+      });
+  
+      // Prepare sanitized course data
+      const sanitizedCourseData: CourseData = {
         ...publishData,
         courseContent: {
           ...publishData.courseContent,
-          lessons: updatedLessons, // Lessons with updated video URLs
+          lessons: sanitizedLessons as Lesson[], // Explicitly cast to Lesson[]
         },
+        basicDetails: {
+          title: publishData.basicDetails.title,
+          description: publishData.basicDetails.description,
+          thumbnail: publishData.basicDetails.thumbnail,
+          language: publishData.basicDetails.language,
+          category: publishData.basicDetails.category,
+          whatWillLearn: publishData.basicDetails.whatWillLearn,
+        },
+        pricing: publishData.pricing,
       };
+  
+      console.log('Sanitized course data:', sanitizedCourseData);
+  
+      // Send updated data to the backend
+      const response = await commonRequest(
+        "POST",
+        `${URL}/course/add-course`,
+        sanitizedCourseData,
+        config
+      );
 
-      // Handle course publication logic here (e.g., send `updatedCourseData` to the backend or API)
-      console.log('Updated course data with uploaded videos:', updatedCourseData);
-      const response = await commonRequest("POST",`${URL}/course/add-course`,updatedCourseData,config);
-      console.log(response)
-
-    } catch (error:any) {
-      console.log(error.message)   
+      if(!response.success){
+        toast.error("failed to add Course, Please try again!!")
+        return;
+      }
+      toast.success(response.message)
+      navigate("/instructor/courses")
+    } catch (error: any) {
+      console.log(error.message);
     }
   };
+  
+  
+  
 
   const renderStep = () => {
     switch (currentStep) {
