@@ -1,6 +1,7 @@
 // types/Courses.ts
 
 import { DisplayCategory } from "../pages/admin/Category";
+import { User } from "./Users";
 
 export interface BasicDetails {
   _id?:string
@@ -30,11 +31,15 @@ export interface PricingDetail {
   type: 'free' | 'paid';
   amount?: number;
   hasLifetimeAccess: boolean;
-  subscriptionType?: 'one-time' | 'subscription';
+  subscriptionType?: 'one-time';
 }
 export interface CourseData {
   _id?:string
+  instructorId: string;
+  instructor: User
   basicDetails: BasicDetails;
   courseContent: CourseContents;
   pricing: PricingDetail;
+  students?:[];
+  // TODO: add the students array in the backend and compolete the student enrollements
 }

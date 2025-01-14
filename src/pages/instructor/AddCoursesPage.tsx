@@ -21,6 +21,8 @@ const AddCoursePage: React.FC = () => {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [courseData, setCourseData] = useState<CourseData>({
+    instructorId: user?.id || '', // Assuming user has an id
+    instructor: user?._id || { id: '', name: '' }, // Default instructor data if user is not available
     basicDetails: {
       title: '',
       description: '',
@@ -39,6 +41,7 @@ const AddCoursePage: React.FC = () => {
       hasLifetimeAccess: true,
     },
   });
+  
 
   const handleBasicDetailsSubmit = (values: BasicDetails) => {
     setCourseData(prev => ({

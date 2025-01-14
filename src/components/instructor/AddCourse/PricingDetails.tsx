@@ -154,7 +154,7 @@ const PricingDetails: React.FC<PricingDetailsProps> = ({ onSubmit, onBack, onNex
                     </label>
 
                     {/* Subscription Option */}
-                    <label className="relative flex items-center justify-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    {/* <label className="relative flex items-center justify-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                       <Field
                         type="radio"
                         name="subscriptionType"
@@ -172,7 +172,7 @@ const PricingDetails: React.FC<PricingDetailsProps> = ({ onSubmit, onBack, onNex
                       {values.subscriptionType === 'subscription' && (
                         <div className="absolute inset-0 border-2 border-fuchsia-600 rounded-lg pointer-events-none" />
                       )}
-                    </label>
+                    </label> */}
                   </div>
                   {errors.subscriptionType && touched.subscriptionType && (
                     <div className="text-red-500 text-sm">{errors.subscriptionType}</div>

@@ -14,6 +14,7 @@ const CoursesPage: React.FC = () => {
   const fetchCourses = async () => {
     try {
       const res = await commonRequest('GET', `${URL}/course/all-instructor-courses/${user?._id}`, {}, config);
+      console.log(res.data , "here is hte data")
       setCourses(res.data);
     } catch (error) {
       console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);
@@ -78,8 +79,11 @@ const CoursesPage: React.FC = () => {
                 </div>
                 <div className="flex items-center">
                   <Users className="mr-2 h-4 w-4" />
-                  <span>{course?.basicDetails?.language}</span>
+                  <span>
+                    {course?.instructor?.firstName + " " + course?.instructor?.lastName}
+                  </span>
                 </div>
+                <span>{course?.basicDetails?.language}</span>
                 <span className="px-2 py-1 bg-pink-100 text-pink-800 rounded-full text-s font-bold">
                 {
                   typeof course?.basicDetails?.category === "string"

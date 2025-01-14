@@ -24,7 +24,6 @@ export function CourseFilter({ onFilterChange }: CourseFilterProps) {
           //   ...cat,
           //   imageUrl: cat.imageUrl || '', // Ensure imageUrl is a string
           // }));
-          console.log(res.data,"cat")
           setCategories(res.data);
         } catch (error) {
           console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);
