@@ -17,10 +17,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         style={{
           width: "100vw",
           height: "300px",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
           cursor: "pointer", // Added cursor style
           marginBottom:"1.5rem",
-          border:'2px solid-white'
+          border:'2px solid-white',
+          objectFit:"cover"
         }}
       >
         <source src={videoSrc} type="video/mp4" />

@@ -33,6 +33,7 @@ export interface PricingDetail {
   hasLifetimeAccess: boolean;
   subscriptionType?: 'one-time';
 }
+
 export interface CourseData {
   _id?:string
   instructorId: string;
@@ -40,6 +41,5 @@ export interface CourseData {
   basicDetails: BasicDetails;
   courseContent: CourseContents;
   pricing: PricingDetail;
-  students?:[];
-  // TODO: add the students array in the backend and compolete the student enrollements
+  students?: string[]
 }

@@ -117,9 +117,9 @@ const CourseHomePage: React.FC = () => {
                               ? `₹${course.pricing.amount?.toFixed(2)}`
                               : "Free"}
                           </span>
-                          <button className="bg-fuchsia-700 text-white px-6 py-2 rounded-md hover:bg-fuchsia-900 transition-colors font-medium">
+                          {/* <button className="bg-fuchsia-700 text-white px-6 py-2 rounded-md hover:bg-fuchsia-900 transition-colors font-medium">
                             Enroll Now
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     </div>

@@ -1,15 +1,17 @@
 import React from 'react';
 import { Play, Clock } from 'lucide-react';
 import { Lesson } from '../../../pages/common/CourseDetailPage';
+import toast from 'react-hot-toast';
 
 interface LessonListProps {
   lessons?: Lesson[];
   onSelectLesson?: (lesson: Lesson) => void; // No change needed here
   currentLessonId?: string;
+  isEnrolled: Boolean;
 }
 
 
-const LessonList: React.FC<LessonListProps> = ({ lessons, onSelectLesson, currentLessonId }) => {
+const LessonList: React.FC<LessonListProps> = ({ lessons, onSelectLesson, currentLessonId,isEnrolled }) => {
   return (
     <div className="bg-white rounded-lg shadow-md">
       <div className="p-6 border-b">
@@ -20,7 +22,13 @@ const LessonList: React.FC<LessonListProps> = ({ lessons, onSelectLesson, curren
         {lessons?.map((lesson) => (
           <button
             key={lesson._id}
-            onClick={() => onSelectLesson?.(lesson)} // Triggers onSelectLesson
+            onClick={() => {
+              if (isEnrolled) {
+                onSelectLesson?.(lesson); // Trigger onSelectLesson if enrolled
+              } else {
+                toast.error('Enroll to continue!!'); // Show a warning if not enrolled
+              }
+            }} // Triggers onSelectLesson
             className={`w-full p-6 text-left hover:bg-gray-50 transition-colors ${
               currentLessonId === lesson._id ? 'bg-blue-50' : ''
             }`}

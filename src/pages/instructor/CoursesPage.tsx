@@ -59,8 +59,7 @@ const CoursesPage: React.FC = () => {
                 </div>
                 {course?.pricing?.type === 'paid' ? (
                   <div className="flex items-center text-green-600 font-semibold">
-                    <DollarSign className="h-5 w-5" />
-                    <span>{course.pricing.amount}</span>
+                    <span>₹{course.pricing.amount}</span>
                   </div>
                 ) : (
                   <span className="text-green-600 font-semibold">Free</span>
