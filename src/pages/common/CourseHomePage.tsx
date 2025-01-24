@@ -13,63 +13,76 @@ import Pagination from "../../components/common/Pagination";
 const CourseHomePage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const [courses, setCourses] = useState<CourseData[]>([]);
-  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
-  const [filters, setFilters] = useState<any>({});
-  // TODO:complete the implementation of the filter.
+  const [meta, setMeta] = useState({
+    total: 0,
+    page: 1,
+    limit: 3,
+    totalPages: 0,
+  });
+  const [filters, setFilters] = useState<any>({
+    search: "",
+    sortBy: "relevance", // Default sort
+    categories: [],
+    page: 1,
+  });
 
   const Navigate = useNavigate();
 
   const handleFilterChange = (newFilters: any) => {
-    setFilters((prevFilters:any) => ({ ...prevFilters, ...newFilters }));
+    setFilters((prevFilters: any) => ({
+      ...prevFilters,
+      ...newFilters,
+      page: 1, // Reset to first page when filters change
+    }));
   };
-  console.log(filters,'in front filter')
-  console.log(meta, "in the front-end")
 
   const fetchCourses = async () => {
     try {
-      const res = await commonRequest("GET", `${URL}/course/all-courses`, {}, config);
+      const queryParams = new URLSearchParams(filters).toString();
+      const res = await commonRequest(
+        "GET",
+        `${URL}/course/all-courses?${queryParams}`,
+        {},
+        config
+      );
       setCourses(res.data);
+      setMeta(res.meta); // Update pagination metadata
     } catch (error) {
-      console.error("Failed to fetch categories: in ADMIN/INSTRUCTOR", error);
+      console.error("Failed to fetch courses", error);
     }
   };
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [filters]); // Fetch courses whenever filters change
 
-  // description,title,img
-  function handleCourseClick (id:string) {
+  const handleCourseClick = (id: string) => {
     try {
-        Navigate(`/details/${id}`)
-    } catch (error:any) {
-        console.log("ERROR IN HANDLE COURSE CLICK:",error?.message);
+      Navigate(`/details/${id}`);
+    } catch (error: any) {
+      console.log("ERROR IN HANDLE COURSE CLICK:", error?.message);
     }
-  }
+  };
 
-  function handlePageChange () {
-    try {
-      console.log("handle page change")
-    } catch (error) {
-      console.log("error in handle page change")
-    }
-  }
+  const handlePageChange = (page: number) => {
+    setFilters((prevFilters: any) => ({ ...prevFilters, page }));
+  };
 
   return (
     <>
       <Navbar User={user} />
       <div className="min-h-screen bg-gray-100">
-        <main className="max-w-7xl mx-auto px-4 py-6">
+        <main className="max-w-8xl mx-auto px-4 py-6">
           <div className="flex gap-6">
             <div className="w-64 flex-shrink-0">
               <CourseFilter onFilterChange={handleFilterChange} />
             </div>
             <div className="flex-1">
               <div className="space-y-4">
-                {courses.length === 0 ? (
+                {courses?.length === 0 ? (
                   <p>No Courses found</p>
                 ) : (
-                  courses.map((course) => (
+                  courses?.map((course) => (
                     <div
                       key={course?._id}
                       className="bg-white shadow-lg rounded-lg overflow-hidden flex hover:shadow-xl transition-shadow duration-300"
@@ -90,18 +103,27 @@ const CourseHomePage: React.FC = () => {
                         <div>
                           <div className="flex justify-between items-start">
                             <div>
-                              <h2 className="text-xl font-semibold mb-2" onClick={() => handleCourseClick(course?._id!)}>{course?.basicDetails?.title}</h2>
-                              <p className="text-gray-600 mb-4 line-clamp-4" onClick={() => handleCourseClick(course?._id!)}>
+                              <h2
+                                className="text-xl font-semibold mb-2"
+                                onClick={() => handleCourseClick(course?._id!)}
+                              >
+                                {course?.basicDetails?.title}
+                              </h2>
+                              <p
+                                className="text-gray-600 mb-4 line-clamp-4"
+                                onClick={() => handleCourseClick(course?._id!)}
+                              >
                                 {course?.basicDetails?.description}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-6 text-sm text-gray-500">
                             <div className="flex items-center">
-                              <Clock className="mr-2 h-4 w-4"/>
+                              <Clock className="mr-2 h-4 w-4" />
                               <span>
                                 {course?.courseContent?.lessons?.reduce(
-                                  (acc, lesson) => acc + (parseInt(lesson.duration) || 0),
+                                  (acc, lesson) =>
+                                    acc + (parseInt(lesson.duration) || 0),
                                   0
                                 )}{" "}
                                 mins
@@ -110,7 +132,9 @@ const CourseHomePage: React.FC = () => {
                             <div className="flex items-center">
                               <Users className="mr-2 h-4 w-4" />
                               <span>
-                                {course?.instructor?.firstName + " " + course?.instructor?.lastName}
+                                {course?.instructor?.firstName +
+                                  " " +
+                                  course?.instructor?.lastName}
                               </span>
                             </div>
                             <span>{course?.basicDetails?.language}</span>
@@ -133,9 +157,6 @@ const CourseHomePage: React.FC = () => {
                               ? `₹${course.pricing.amount?.toFixed(2)}`
                               : "Free"}
                           </span>
-                          {/* <button className="bg-fuchsia-700 text-white px-6 py-2 rounded-md hover:bg-fuchsia-900 transition-colors font-medium">
-                            Enroll Now
-                          </button> */}
                         </div>
                       </div>
                     </div>
@@ -143,10 +164,10 @@ const CourseHomePage: React.FC = () => {
                 )}
               </div>
               <Pagination
-                    currentPage={meta.page}
-                    totalPages={meta.totalPages}
-                    onPageChange={handlePageChange}
-                  />
+                currentPage={meta?.page}
+                totalPages={meta?.totalPages}
+                onPageChange={handlePageChange}
+              />
             </div>
           </div>
         </main>

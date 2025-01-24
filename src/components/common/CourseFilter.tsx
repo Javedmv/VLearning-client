@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
-import { commonRequest,URL } from '../../common/api';
+import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 
 interface CourseFilterProps {
@@ -8,44 +8,46 @@ interface CourseFilterProps {
 }
 
 interface Category {
-    _id: string,
-    name: string
-  }
+  _id: string;
+  name: string;
+}
 
 export function CourseFilter({ onFilterChange }: CourseFilterProps) {
-    const [categories, setCategories] = useState([]);
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
+  const fetchCategory = async () => {
+    try {
+      const res = await commonRequest(
+        'GET',
+        `${URL}/course/get-category-status-true`,
+        {},
+        config
+      );
+      setCategories(res.data);
+    } catch (error) {
+      console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);
+    }
+  };
 
-    const fetchCategory = async () => {
-        try {
-          const res = await commonRequest('GET', `${URL}/course/get-category-status-true`, {}, config);
-          // const fetchedCategories = res.data.map((cat: any) => ({
-          //   ...cat,
-          //   imageUrl: cat.imageUrl || '', // Ensure imageUrl is a string
-          // }));
-          setCategories(res.data);
-        } catch (error) {
-          console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);
-        }
-      };
-    
-      useEffect(() => {
-        fetchCategory();
-    },[])
+  useEffect(() => {
+    fetchCategory();
+  }, []);
 
-    const handleCategoryChange = (categoryId: string, checked: boolean) => {
-        let newSelectedCategories: string[];
-        
-        if (checked) {
-          newSelectedCategories = [...selectedCategories, categoryId];
-        } else {
-          newSelectedCategories = selectedCategories.filter(id => id !== categoryId);
-        }
-        
-        setSelectedCategories(newSelectedCategories);
-        onFilterChange({ categories: newSelectedCategories });
-      };
+  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+    let newSelectedCategories: string[];
+
+    if (checked) {
+      newSelectedCategories = [...selectedCategories, categoryId];
+    } else {
+      newSelectedCategories = selectedCategories.filter(
+        (id) => id !== categoryId
+      );
+    }
+
+    setSelectedCategories(newSelectedCategories);
+    onFilterChange({ categories: newSelectedCategories });
+  };
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-md">
@@ -63,7 +65,7 @@ export function CourseFilter({ onFilterChange }: CourseFilterProps) {
 
       <div className="mb-6">
         <h3 className="font-semibold mb-3">Category</h3>
-        {categories.map((category:Category) => (
+        {categories.map((category: Category) => (
           <label key={category._id} className="flex items-center mb-2">
             <input
               type="checkbox"
@@ -77,39 +79,18 @@ export function CourseFilter({ onFilterChange }: CourseFilterProps) {
       </div>
 
       <div className="mb-6">
-        <h3 className="font-semibold mb-3">Price Range</h3>
-        <select 
+        <h3 className="font-semibold mb-3">Sort By</h3>
+        <select
           className="w-full p-2 border rounded-lg"
-          onChange={(e) => onFilterChange({ priceRange: e.target.value })}
+          onChange={(e) => onFilterChange({ sortBy: e.target.value })}
         >
-          <option value="all">All Prices</option>
-          <option value="free">Free</option>
-          <option value="paid">Paid</option>
-          <option value="under50">Under ₹50</option>
-          <option value="50to100">₹50 - ₹100</option>
-          <option value="over100">Over ₹100</option>
+          <option value="relevance">Relevance</option>
+          <option value="popularity">Popularity</option>
+          <option value="priceLowToHigh">Price: Low to High</option>
+          <option value="priceHighToLow">Price: High to Low</option>
+          <option value="newest">Newest</option>
         </select>
       </div>
-
-      {/* <div className="mb-6">
-        <h3 className="font-semibold mb-3">Duration</h3>
-        {['0-2 hours', '3-6 hours', '7-16 hours', '17+ hours'].map((duration) => (
-          <label key={duration} className="flex items-center mb-2">
-            <input type="checkbox" className="mr-2" onChange={(e) => onFilterChange({ duration })} />
-            <span>{duration}</span>
-          </label>
-        ))}
-      </div> */}
-
-      {/* <div>
-        <h3 className="font-semibold mb-3">Rating</h3>
-        {[4, 3, 2, 1].map((rating) => (
-          <label key={rating} className="flex items-center mb-2">
-            <input type="checkbox" className="mr-2" onChange={(e) => onFilterChange({ rating })} />
-            <span>{rating}+ Stars</span>
-          </label>
-        ))}
-      </div> */}
     </div>
   );
 }

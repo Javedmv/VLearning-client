@@ -8,7 +8,7 @@ interface PaginationProps {
 
 const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
   return (
-    <div className="flex justify-center items-center gap-2">
+    <div className="m-3 flex justify-center items-center gap-2">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}

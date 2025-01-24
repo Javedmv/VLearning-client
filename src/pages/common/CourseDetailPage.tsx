@@ -12,8 +12,6 @@ import { RootState } from '../../redux/store';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
-import { loadStripe } from "@stripe/stripe-js";
-
 // In your frontend Lesson interface
 export interface Lesson {
     _id?: string;
