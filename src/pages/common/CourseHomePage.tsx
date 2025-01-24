@@ -8,14 +8,22 @@ import Navbar from "../../components/home/Navbar";
 import { RootState } from "../../redux/store";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import Pagination from "../../components/common/Pagination";
 
 const CourseHomePage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const [courses, setCourses] = useState<CourseData[]>([]);
+  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
+  const [filters, setFilters] = useState<any>({});
+  // TODO:complete the implementation of the filter.
 
   const Navigate = useNavigate();
 
-  const handleFilterChange = () => console.log("hello");
+  const handleFilterChange = (newFilters: any) => {
+    setFilters((prevFilters:any) => ({ ...prevFilters, ...newFilters }));
+  };
+  console.log(filters,'in front filter')
+  console.log(meta, "in the front-end")
 
   const fetchCourses = async () => {
     try {
@@ -36,6 +44,14 @@ const CourseHomePage: React.FC = () => {
         Navigate(`/details/${id}`)
     } catch (error:any) {
         console.log("ERROR IN HANDLE COURSE CLICK:",error?.message);
+    }
+  }
+
+  function handlePageChange () {
+    try {
+      console.log("handle page change")
+    } catch (error) {
+      console.log("error in handle page change")
     }
   }
 
@@ -82,7 +98,7 @@ const CourseHomePage: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-6 text-sm text-gray-500">
                             <div className="flex items-center">
-                              <Clock className="mr-2 h-4 w-4" />
+                              <Clock className="mr-2 h-4 w-4"/>
                               <span>
                                 {course?.courseContent?.lessons?.reduce(
                                   (acc, lesson) => acc + (parseInt(lesson.duration) || 0),
@@ -126,6 +142,11 @@ const CourseHomePage: React.FC = () => {
                   ))
                 )}
               </div>
+              <Pagination
+                    currentPage={meta.page}
+                    totalPages={meta.totalPages}
+                    onPageChange={handlePageChange}
+                  />
             </div>
           </div>
         </main>

@@ -29,6 +29,10 @@ import Teach from './pages/user/Teach';
 import CategoriesPage from './pages/admin/Category';
 import CourseHomePage from './pages/common/CourseHomePage';
 import CourseDetailPage from './pages/common/CourseDetailPage';
+import PaymentDashboard from './pages/user/payment/paymentDashboard';
+import PaymentSuccess from './pages/user/payment/paymentSuccess';
+import PaymentFailure from './pages/user/payment/paymentFailure';
+import MyLearnings from './pages/user/MyLearnings';
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
@@ -160,6 +164,24 @@ const router = (user: any) =>
             element: <Navigate to="/admin" replace />,
           },
         ],
+      },
+      {
+        path: "payment",
+        element: <PaymentDashboard user={user} />,
+        children: [
+          {
+            path: "success/:courseId",
+            element: <PaymentSuccess />,
+          },
+          {
+            path: "failed/:courseId",
+            element: <PaymentFailure />,
+          },
+        ],
+      },
+      {
+        path: "my-learnings",
+        element: <MyLearnings />
       }
     ],
     // this is given to remove the warning in browser

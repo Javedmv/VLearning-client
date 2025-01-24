@@ -12,6 +12,7 @@ import { RootState } from '../../redux/store';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
+import { loadStripe } from "@stripe/stripe-js";
 
 // In your frontend Lesson interface
 export interface Lesson {
@@ -59,7 +60,6 @@ const CourseDetailPage: React.FC = () => {
 
   async function handleEnroll (userId:string, courseId:string | undefined) {
     try {
-      console.log("handle button is clicked");
       const res = await commonRequest('POST', `${URL}/course/enroll-user`, {userId,courseId}, config);
       return res;
     } catch (error) {
@@ -67,23 +67,54 @@ const CourseDetailPage: React.FC = () => {
     }
   }
 
-  async function handlePayment (userId:string,courseId:string) {
+  async function handlePayment(userId: string, courseId: string) {
     try {
-      if(coursePriceType === "Free"){
-        const response = await handleEnroll(userId,courseId);
-        if(!response?.success){
-          toast.error(response?.message || "something went wrong.");
+      if (coursePriceType === "Free") {
+        const response = await handleEnroll(userId, courseId);
+        if (!response?.success) {
+          toast.error(response?.message || "Something went wrong.");
           return;
         }
+  
         toast.success(response?.message);
         await fetchCourse(response?.data);
-      }else{
-        alert("need to manage the payment!!")
+      } 
+      else {
+      //   const stripe = await loadStripe(import.meta.env.VITE_STRIPE_KEY!).catch(err => {
+      //     console.error('Stripe loading error:', err);
+      //     return null;
+      //   });
+
+      //   if (!stripe) {
+      //     toast.error("Stripe failed to load.");
+      //     return;
+      //   }
+  
+        const response = await commonRequest("POST", `${URL}/payment/create-session`, { userId, courseId }, config);
+  
+        // if (!response?.success) {
+        //   toast.error(response?.message || "Something went wrong.");
+        //   return;
+        // }
+        window.location.href = response?.data
+        console.log(response.data, "response from backend")
+  
+        // const sessionId = response.data.sessionId;
+  
+        // Redirect to Stripe Checkout
+        // const result = await stripe.redirectToCheckout({ sessionId });
+        // if (result.error) {
+
+        //   toast.error(result.error.message || "Failed to redirect to Stripe.");
+        // }
       }
     } catch (error) {
-      console.log(error)
+      console.error("Payment failed:", error);
+      toast.error("Something went wrong while processing the payment.");
     }
   }
+  
+  
 
   return (
     <>

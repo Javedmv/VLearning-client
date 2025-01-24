@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import { commonRequest,URL } from '../../common/api';
 import { config } from '../../common/configurations';
@@ -91,7 +91,7 @@ export function CourseFilter({ onFilterChange }: CourseFilterProps) {
         </select>
       </div>
 
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <h3 className="font-semibold mb-3">Duration</h3>
         {['0-2 hours', '3-6 hours', '7-16 hours', '17+ hours'].map((duration) => (
           <label key={duration} className="flex items-center mb-2">
@@ -99,7 +99,7 @@ export function CourseFilter({ onFilterChange }: CourseFilterProps) {
             <span>{duration}</span>
           </label>
         ))}
-      </div>
+      </div> */}
 
       {/* <div>
         <h3 className="font-semibold mb-3">Rating</h3>
