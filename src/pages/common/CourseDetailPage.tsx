@@ -61,6 +61,7 @@ const CourseDetailPage: React.FC = () => {
   async function handleEnroll (userId:string, courseId:string | undefined) {
     try {
       const res = await commonRequest('POST', `${URL}/course/enroll-user`, {userId,courseId}, config);
+      console.log(res);
       return res;
     } catch (error) {
       console.log(error)
