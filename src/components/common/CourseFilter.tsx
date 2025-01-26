@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
-import { commonRequest, URL } from '../../common/api';
-import { config } from '../../common/configurations';
+import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
+import { commonRequest, URL } from "../../common/api";
+import { config } from "../../common/configurations";
 
 interface CourseFilterProps {
   onFilterChange: (filters: any) => void;
+  search: string; // Controlled search term
+  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // Search change handler
 }
 
 interface Category {
@@ -12,21 +14,25 @@ interface Category {
   name: string;
 }
 
-export function CourseFilter({ onFilterChange }: CourseFilterProps) {
+export function CourseFilter({
+  onFilterChange,
+  search,
+  onSearchChange,
+}: CourseFilterProps) {
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const fetchCategory = async () => {
     try {
       const res = await commonRequest(
-        'GET',
+        "GET",
         `${URL}/course/get-category-status-true`,
         {},
         config
       );
       setCategories(res.data);
     } catch (error) {
-      console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);
+      console.error("Failed to fetch categories: in ADMIN/INSTRUCTOR", error);
     }
   };
 
@@ -57,7 +63,8 @@ export function CourseFilter({ onFilterChange }: CourseFilterProps) {
             type="text"
             placeholder="Search courses..."
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onChange={(e) => onFilterChange({ search: e.target.value })}
+            value={search} // Controlled value
+            onChange={onSearchChange} // Controlled change handler
           />
           <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
         </div>

@@ -50,6 +50,8 @@ const CourseDetailPage: React.FC = () => {
 
   useEffect(() => {
     fetchCourse(id!);
+    window.scrollTo(0, 0);
+
   }, [id]);
 
   const coursePriceType = courseData?.pricing?.type === 'free' ? "Free" : "Paid";

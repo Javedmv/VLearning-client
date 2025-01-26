@@ -8,3 +8,13 @@
 .sub-heading {
   @apply text-fuchsia-950 font-extrabold underline text-2xl;
 }
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.blink {
+  animation: blink 1s infinite;
+}

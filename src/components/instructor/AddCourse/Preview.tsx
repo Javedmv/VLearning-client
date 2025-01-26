@@ -29,7 +29,7 @@ const Preview: React.FC<PreviewProps> = ({ courseData, onBack, onSubmit }) => {
           <div className="flex items-center space-x-4 text-white">
             <span className="flex items-center">
               <Tag className="w-4 h-4 mr-2" />
-              {courseData?.basicDetails?.category}
+              {typeof courseData?.basicDetails?.category == "string" && courseData?.basicDetails?.category}
             </span>
             <span className="flex items-center">
               <Globe className="w-4 h-4 mr-2" />

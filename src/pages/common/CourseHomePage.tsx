@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { CourseFilter } from "../../components/common/CourseFilter";
 import { CourseData } from "../../types/Courses";
-import { DollarSign, Clock, Users } from "lucide-react";
+import { Clock, Users } from "lucide-react";
 import { commonRequest, URL } from "../../common/api";
 import { config } from "../../common/configurations";
 import Navbar from "../../components/home/Navbar";
@@ -25,7 +25,7 @@ const CourseHomePage: React.FC = () => {
     categories: [],
     page: 1,
   });
-
+  const [searchTerm, setSearchTerm] = useState<string>(""); // State for the search input
   const Navigate = useNavigate();
 
   const handleFilterChange = (newFilters: any) => {
@@ -53,8 +53,16 @@ const CourseHomePage: React.FC = () => {
   };
 
   useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setFilters((prevFilters: any) => ({ ...prevFilters, search: searchTerm }));
+    }, 500); 
+
+    return () => clearTimeout(delayDebounceFn); 
+  }, [searchTerm]); 
+
+  useEffect(() => {
     fetchCourses();
-  }, [filters]); // Fetch courses whenever filters change
+  }, [filters]); 
 
   const handleCourseClick = (id: string) => {
     try {
@@ -75,7 +83,11 @@ const CourseHomePage: React.FC = () => {
         <main className="max-w-8xl mx-auto px-4 py-6">
           <div className="flex gap-6">
             <div className="w-64 flex-shrink-0">
-              <CourseFilter onFilterChange={handleFilterChange} />
+              <CourseFilter
+                onFilterChange={handleFilterChange}
+                search={searchTerm}
+                onSearchChange={(e) => setSearchTerm(e.target.value)} // Update search term
+              />
             </div>
             <div className="flex-1">
               <div className="space-y-4">

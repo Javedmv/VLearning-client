@@ -1,15 +1,18 @@
 import React from 'react';
 import { UserIcon, Award, BookOpen } from 'lucide-react';
 import { User } from '../../../types/Users';
+import { useNavigate } from 'react-router-dom';
 
 interface InstructorCardProps {
   instructor?: User;
 }
 
 const InstructorCard: React.FC<InstructorCardProps> = ({ instructor }) => {
+  const navigate = useNavigate();
+
   return (
     <>
-    <div className="bg-gray-200 rounded-lg shadow-md p-8">
+    <div onClick={() => navigate(`/instructor/${instructor?._id}`)} className="bg-gray-200 rounded-lg shadow-md p-8">
       <div className="flex items-center gap-6 mb-6">
         <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
         {instructor?.profile?.avatar ? (

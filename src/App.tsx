@@ -33,6 +33,7 @@ import PaymentDashboard from './pages/user/payment/paymentDashboard';
 import PaymentSuccess from './pages/user/payment/paymentSuccess';
 import PaymentFailure from './pages/user/payment/paymentFailure';
 import MyLearnings from './pages/user/MyLearnings';
+import InstructorDetails from './pages/user/InstuctorDetailsPage';
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
@@ -182,6 +183,10 @@ const router = (user: any) =>
       {
         path: "my-learnings",
         element: <MyLearnings />
+      },
+      {
+        path: "instructor/:id",
+        element: <InstructorDetails/>
       }
     ],
     // this is given to remove the warning in browser
