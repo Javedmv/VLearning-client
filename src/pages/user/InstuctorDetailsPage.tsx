@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { 
   Mail, 
   BookOpen, 
-  Star, 
+  Star,
   Users, 
-  Clock, 
+  Clock,
   Award,
   Github,
   Linkedin,
