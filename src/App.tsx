@@ -34,6 +34,7 @@ import PaymentSuccess from './pages/user/payment/paymentSuccess';
 import PaymentFailure from './pages/user/payment/paymentFailure';
 import MyLearnings from './pages/user/MyLearnings';
 import InstructorDetails from './pages/user/InstuctorDetailsPage';
+import EditCoursePage from './pages/instructor/EditCoursePage';
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
@@ -187,6 +188,10 @@ const router = (user: any) =>
       {
         path: "instructor/:id",
         element: <InstructorDetails/>
+      },
+      {
+        path:'edit-course',
+        element: user?.role === "instructor" && <EditCoursePage />
       }
     ],
     // this is given to remove the warning in browser
@@ -209,4 +214,3 @@ const App = () => {
 };
 
 export default App;
-

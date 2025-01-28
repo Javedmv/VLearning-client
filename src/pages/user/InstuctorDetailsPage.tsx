@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { 
   Mail, 
   BookOpen, 
-  Star,
   Users, 
   Clock,
   Award,

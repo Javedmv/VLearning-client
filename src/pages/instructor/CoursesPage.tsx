@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Clock, DollarSign } from 'react-feather';
+import { Users, Clock } from 'react-feather';
 import { CourseData } from '../../types/Courses';
 import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import Modal from '../../components/common/Modal';
+import { useNavigate } from 'react-router-dom';
 
 const CoursesPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const [courses, setCourses] = useState<CourseData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const navigate = useNavigate();
 
   const fetchCourses = async () => {
     try {
@@ -26,28 +28,28 @@ const CoursesPage: React.FC = () => {
     fetchCourses();
   }, []);
 
-  const handleCourseEdit = (id: string) => {
+  const handleCourseEdit = (course:any) => {
     try {
-      console.log("Edit course confirmed", id);
-      // Add logic to handle course editing here
+      console.log("Edit course confirmed", course);
+      navigate('/edit-course',{state:{course}});
     } catch (error) {
       console.error('Handle course edit in instructor ERROR:', error);
     }
   };
 
-  const openModal = (id: string) => {
-    setSelectedCourseId(id);
+  const openModal = (course:any) => {
+    setSelectedCourse(course);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedCourseId(null);
+    setSelectedCourse(null);
   };
 
   const confirmEdit = () => {
-    if (selectedCourseId) {
-      handleCourseEdit(selectedCourseId);
+    if (selectedCourse) {
+      handleCourseEdit(selectedCourse);
     }
     closeModal();
   };
@@ -126,7 +128,7 @@ const CoursesPage: React.FC = () => {
               {/* Edit Course Button */}
               <div className="absolute bottom-4 right-4">
                 <button
-                  onClick={() => openModal(course?._id!)}
+                  onClick={() => openModal(course!)}
                   className="px-4 py-2 bg-fuchsia-700 text-white rounded-lg shadow-md hover:bg-fuchsia-900 transition duration-300"
                 >
                   Edit Course

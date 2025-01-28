@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, ErrorMessage } from 'formik';
 import { AddCourseSchema } from './AddCourse/validation';
 import ThumbnailUpload from './AddCourse/ThumbnailUpload';
 import BasicDetailsForm from './AddCourse/BasicDetailsForm';
@@ -50,7 +50,7 @@ const AddCourse: React.FC<AddCourseProps> = ({ onSubmit, onNext, courseData }) =
         initialValues={initialValues}
         validationSchema={AddCourseSchema}
         onSubmit={(values, { setSubmitting }) => {
-          const cleanedValues = {
+          const cleanedValues:any = {
             ...values,
             whatWillLearn: values.whatWillLearn.filter(point => point.trim() !== ''),
           };
