@@ -5,6 +5,7 @@ import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import Pagination from '../../components/common/Pagination';
 
 interface Student {
   username: string;
@@ -23,22 +24,43 @@ interface Student {
 const Students: React.FC = () => {
   const { user } = useOutletContext<{ user: any }>();
   const [students, setStudents] = useState<Student[]>([]);
+  const [meta, setMeta] = useState({page: 1, limit: 6, total: 0, totalPages: 0});
+
+  
+  const fetchStudents = async () => {
+    try {
+      const queryParams = new URLSearchParams({
+        page: meta.page.toString(),
+        limit: meta.limit.toString()
+      });
+
+      const res = await commonRequest("GET", `${URL}/auth/students?${queryParams}`, null, config);
+      console.log(res.data)
+      setStudents(() => [
+        ...res.data
+      ]);
+      setMeta(prev => ({
+        ...prev,
+        total: res.total,
+        totalPages: res.totalPages
+      }));
+
+    } catch (error) {
+      console.error("Failed to fetch students: in ADMIN/STUDENTS", error);
+    }
+  };
   
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const res = await commonRequest("GET", `${URL}/auth/students`, null, config);
-        console.log(res.data)
-        setStudents(() => [
-          ...res.data
-        ]);
-      } catch (error) {
-        console.error("Failed to fetch students: in ADMIN/STUDENTS", error);
-      }
-    };
-
     fetchStudents();
-  }, []);
+  }, [meta.page]);
+
+  const handlePageChange = (page: number) => {
+    try {
+      setMeta((prev) => ({ ...prev, page}));
+    } catch (error) {
+      console.error('Handle page change in instructor ERROR:', error);
+    }
+  }
 
   const handleBlockUnblock = async (studentId: string, shouldBlock: boolean) => {
     try {
@@ -161,6 +183,13 @@ const Students: React.FC = () => {
         </div>
         )}
       </div>
+        {students.length > 0 && (
+          <Pagination
+            currentPage={meta.page}
+            totalPages={meta.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
     </div>
   );
 };

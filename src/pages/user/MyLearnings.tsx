@@ -1,9 +1,8 @@
 import React from 'react';
-import { BookOpen, Clock, GraduationCap, PlayCircle } from 'lucide-react';
+import { BookOpen, Clock, PlayCircle } from 'lucide-react';
 import Navbar from '../../components/home/Navbar';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
-import { Lesson } from '../common/CourseDetailPage';
 
 // Mock data - In a real app, this would come from an API/database
 const courses = [
