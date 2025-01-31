@@ -7,6 +7,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import Modal from '../../components/common/Modal';
 import { useNavigate } from 'react-router-dom';
+import Pagination from '../../components/common/Pagination';
+
 
 const CoursesPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
@@ -14,11 +16,27 @@ const CoursesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const navigate = useNavigate();
+  const [meta, setMeta] = useState({
+    total: 0,
+    page: 1,
+    limit: 3,
+    totalPages: 0,
+  });
+  
 
   const fetchCourses = async () => {
     try {
-      const res = await commonRequest('GET',`${URL}/course/all-instructor-courses/${user?._id}`,{},config);
+      const queryParams = new URLSearchParams({
+        page: meta.page.toString(),
+        limit: meta.limit.toString()
+      });
+      const res = await commonRequest('GET',`${URL}/course/all-instructor-courses/${user?._id}?${queryParams}`,{},config);
       setCourses(res.data);
+      setMeta(prev => ({
+        ...prev,
+        total: res.total,
+        totalPages: res.pages
+      }));
     } catch (error) {
       console.error('Failed to fetch courses: in ADMIN/INSTRUCTOR', error);
     }
@@ -26,7 +44,7 @@ const CoursesPage: React.FC = () => {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [meta.page]);
 
   const handleCourseEdit = (course:any) => {
     try {
@@ -36,6 +54,14 @@ const CoursesPage: React.FC = () => {
       console.error('Handle course edit in instructor ERROR:', error);
     }
   };
+
+  const handlePageChange = (page: number) => {
+    try {
+      setMeta((prev) => ({ ...prev, page}));
+    } catch (error) {
+      console.error('Handle page change in instructor ERROR:', error);
+    }
+  }
 
   const openModal = (course:any) => {
     setSelectedCourse(course);
@@ -138,6 +164,13 @@ const CoursesPage: React.FC = () => {
           ))
         )}
       </div>
+      {courses.length > 0 && (
+          <Pagination
+            currentPage={meta.page}
+            totalPages={meta.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
 
       {/* Modal */}
       <Modal
@@ -159,6 +192,7 @@ const CoursesPage: React.FC = () => {
             Confirm
           </button>
         </div>
+        
       </Modal>
     </div>
   );

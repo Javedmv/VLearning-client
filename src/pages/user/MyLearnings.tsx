@@ -3,6 +3,7 @@ import { BookOpen, Clock, GraduationCap, PlayCircle } from 'lucide-react';
 import Navbar from '../../components/home/Navbar';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
+import { Lesson } from '../common/CourseDetailPage';
 
 // Mock data - In a real app, this would come from an API/database
 const courses = [
@@ -10,7 +11,7 @@ const courses = [
     id: 1,
     title: "Advanced React Patterns",
     progress: 65,
-    lastAccessed: "Module 4: Custom Hooks",
+    lastAccessed: "Lesson 4: Custom Hooks",
     thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=400",
     totalModules: 8,
     completedModules: 5
@@ -19,7 +20,7 @@ const courses = [
     id: 2,
     title: "TypeScript Masterclass",
     progress: 30,
-    lastAccessed: "Module 2: Advanced Types",
+    lastAccessed: "Lesson 2: Advanced Types",
     thumbnail: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?auto=format&fit=crop&q=80&w=400",
     totalModules: 10,
     completedModules: 3
@@ -28,7 +29,7 @@ const courses = [
     id: 3,
     title: "Node.js Backend Development",
     progress: 85,
-    lastAccessed: "Module 7: Authentication",
+    lastAccessed: "Lesson 7: Authentication",
     thumbnail: "https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=400",
     totalModules: 8,
     completedModules: 7
@@ -37,7 +38,7 @@ const courses = [
     id: 3,
     title: "Node.js Backend Development",
     progress: 85,
-    lastAccessed: "Module 7: Authentication",
+    lastAccessed: "Lesson 7: Authentication",
     thumbnail: "https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=400",
     totalModules: 8,
     completedModules: 7
@@ -91,7 +92,7 @@ const MyLearnings: React.FC = () => {
 
                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                     <BookOpen className="w-4 h-4" />
-                    <span>{course.completedModules}/{course.totalModules} Modules</span>
+                    <span>{course.completedModules}/{course.totalModules} Lessons</span>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-gray-600">
