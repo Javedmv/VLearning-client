@@ -58,7 +58,7 @@ const CourseHomePage: React.FC = () => {
     }, 500); 
 
     return () => clearTimeout(delayDebounceFn); 
-  }, [searchTerm]); 
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchCourses();

@@ -58,7 +58,7 @@ const Students: React.FC = () => {
     try {
       setMeta((prev) => ({ ...prev, page}));
     } catch (error) {
-      console.error('Handle page change in instructor ERROR:', error);
+      console.error('Handle page change in Student ERROR:', error);
     }
   }
 

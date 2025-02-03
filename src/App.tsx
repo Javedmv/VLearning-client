@@ -12,7 +12,7 @@ import Instructors from './pages/admin/Instructors';
 import Courses from './pages/admin/Courses';
 import Messages from './pages/admin/Messages';
 import Schedule from './pages/admin/Schedule';
-import Analytics from './pages/admin/Analytics';
+// import Analytics from './pages/admin/Analytics';
 import Settings from './pages/admin/Settings';
 import UserForm from './pages/user/UserForm';
 import { AppDispatch, RootState } from './redux/store';
@@ -35,6 +35,7 @@ import PaymentFailure from './pages/user/payment/paymentFailure';
 import MyLearnings from './pages/user/MyLearnings';
 import InstructorDetails from './pages/user/InstuctorDetailsPage';
 import EditCoursePage from './pages/instructor/EditCoursePage';
+import BannerComponent from './pages/admin/Banner';
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
@@ -150,8 +151,8 @@ const router = (user: any) =>
             element: <Schedule />,
           },
           {
-            path: 'analytics',
-            element: <Analytics />,
+            path: 'banner',
+            element: <BannerComponent />,
           },
           {
             path: 'settings',

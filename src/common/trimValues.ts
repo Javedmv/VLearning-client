@@ -5,6 +5,7 @@ const omitParentKeys = ['profile', 'otherParentKey']; // Add any other parent ke
 
 const trimValuesToFormData = (values: NestedValues, parentKey: string = ''): FormData => {
   const formData: FormData = new FormData();
+  
 
   for (const key in values) {
     const fullKey = parentKey ? `${parentKey}[${key}]` : key;

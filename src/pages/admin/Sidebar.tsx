@@ -8,6 +8,7 @@ import {
   Settings,
   // BarChart2,
   LogOut,
+  BarChart2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -86,15 +87,16 @@ const Sidebar: React.FC = () => {
               <span>Messages</span>
             </Link>
           </li>
+          */}
           <li>
             <Link
-              to="/admin/analytics"
+              to="/admin/banner"
               className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors"
             >
               <BarChart2 className="w-5 h-5" />
-              <span>Analytics</span>
+              <span>Banner</span>
             </Link>
-          </li> */}
+          </li> 
           <li>
             <Link
               to="/admin/settings"

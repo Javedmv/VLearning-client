@@ -5,6 +5,7 @@ import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import toast from 'react-hot-toast';
+import Pagination from '../../components/common/Pagination';
 
 interface Instructor {
   username: string;
@@ -28,18 +29,32 @@ interface Instructor {
 const Instructors: React.FC = () => {
   const { user } = useOutletContext<{ user: any }>();
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [meta, setMeta] = useState({page: 1, limit: 8, total: 0, totalPages: 0});
+
+
+  const fetchInstructor = async () => {
+    try {
+      const queryParams = new URLSearchParams({
+        page: meta.page.toString(),
+        limit: meta.limit.toString()
+      });
+      const res = await commonRequest('GET', `${URL}/auth/instructors?${queryParams}`, {}, config);
+      console.log(res.data,"data from instructor")
+      setInstructors(res.data);
+      setMeta(prev => ({
+        ...prev,
+        total: res.total,
+        totalPages: res.totalPages
+      }));
+
+    } catch (error) {
+      console.error('Failed to fetch students: in ADMIN/INSTRUCTOR', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchInstructor = async () => {
-      try {
-        const res = await commonRequest('GET', `${URL}/auth/instructors`, {}, config);
-        setInstructors(res.data);
-      } catch (error) {
-        console.error('Failed to fetch students: in ADMIN/INSTRUCTOR', error);
-      }
-    };
     fetchInstructor();
-  }, []);
+  }, [meta.page]);
 
   const handleBlockUnblock = async (instructorId: string, shouldBlock: boolean) => {
     try {
@@ -93,6 +108,10 @@ const Instructors: React.FC = () => {
       toast.error(error?.message);
     }
   };
+  
+  const handlePageChange = (page: number) => {
+    setMeta((prev) => ({ ...prev, page }));
+  };
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -105,6 +124,8 @@ const Instructors: React.FC = () => {
           type="text"
           placeholder="Filter instructors..."
           className="border px-3 py-2 rounded-md w-full"
+          // value={meta.search}
+          // onChange={(e) => handleSearchChange(e.target.value)}
         />
       </div>
 
@@ -133,7 +154,7 @@ const Instructors: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-400">
-            {instructors.length !== 0 &&
+            {instructors?.length > 0 &&
               instructors.map((instructor) => (
                 <tr key={instructor?._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -249,8 +270,15 @@ const Instructors: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {instructors?.length > 0 && (
+          <Pagination
+            currentPage={meta.page}
+            totalPages={meta.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
 
-      {instructors.length === 0 && (
+      {instructors?.length == 0 && (
         <div className="text-center text-gray-500 mt-6">No instructors found!!</div>
       )}
     </div>

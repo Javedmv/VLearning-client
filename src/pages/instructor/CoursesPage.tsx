@@ -35,7 +35,7 @@ const CoursesPage: React.FC = () => {
       setMeta(prev => ({
         ...prev,
         total: res.total,
-        totalPages: res.pages
+        totalPages: res.totalPages
       }));
     } catch (error) {
       console.error('Failed to fetch courses: in ADMIN/INSTRUCTOR', error);
