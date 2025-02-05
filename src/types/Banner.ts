@@ -5,5 +5,6 @@ export interface Banner {
     type: 'promotional' | 'announcement' | 'sale';
     imageUrl: File | string;
     description?: string;
+    priority: 'high' | 'medium' | 'low';
   }
 

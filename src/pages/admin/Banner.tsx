@@ -15,6 +15,7 @@ const BannerComponent :React.FC = () => {
     type: 'promotional',
     imageUrl: '',
     description: '',
+    priority: 'low'
     });
 
     const [previewImage, setPreviewImage] = useState<string>('');
@@ -62,6 +63,7 @@ const BannerComponent :React.FC = () => {
             formData.append('status', newBanner.status.toString());
             formData.append('type', newBanner.type);
             formData.append('description', newBanner.description || '');
+            formData.append('priority', newBanner.priority as "high" | "medium" | "low");
     
             if (fileInputRef.current?.files?.[0]) {
                 formData.append('files.banner', fileInputRef.current.files[0]); // Attach the file
@@ -90,6 +92,7 @@ const BannerComponent :React.FC = () => {
                 type: 'promotional',
                 imageUrl: '',
                 description: '',
+                priority: 'low'
             });
             setPreviewImage('');
             if (fileInputRef.current) {
@@ -105,8 +108,8 @@ const BannerComponent :React.FC = () => {
                 toast.error(response?.message)
                 return;
             }
+            setBanners((prevBanners) => prevBanners.filter((banner) => banner._id !== id));
             toast.success(response?.message)
-            fetchBanners();
         } catch (error) {
             console.error("Delete error:", error);
         }
@@ -119,6 +122,20 @@ const BannerComponent :React.FC = () => {
             console.log(error);
         }
     }
+    const handleToggleStatus = async (id: string, status: boolean) => {
+        try {
+            const response = await commonRequest('PUT', `${URL}/auth/banner/toggle-status/${id}`, { status }, config);
+            if (!response?.success) {
+                toast.error(response.message);
+                return;
+            }
+            setBanners((prevBanners) => prevBanners.map((banner) => banner._id === id ? { ...banner, status: !status } : banner));
+            toast.success(response.message);
+        } catch (error) {
+            console.error("Toggle status error:", error);
+        }
+    };
+    
     
 
     return (
@@ -155,6 +172,19 @@ const BannerComponent :React.FC = () => {
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Priority
+                            </label>
+                            <select
+                            value={newBanner.priority}
+                            onChange={(e) => setNewBanner({ ...newBanner, priority: e.target.value as "high" | "medium" | "low"})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High <span className="text-gray-500 text-sm">(shows in top)</span></option>                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -230,7 +260,11 @@ const BannerComponent :React.FC = () => {
             {/* Banner List */}
             <div className="grid grid-cols-2 gap-6">
                 
-            {banners.length > 0 ? (banners.map((banner) => (
+            {banners.length === 0 ? (
+                <div className="bg-gray-300 rounded-lg shadow-md p-6 text-center">
+                    <h2 className="text-xl font-semibold">No Banners Found</h2>
+                </div>
+            ) : (banners.map((banner) => (
                 <div key={banner?._id} className="bg-gray-300 rounded-lg shadow-md overflow-hidden">
                     {typeof banner?.imageUrl === "string" && banner?.imageUrl && (
                         <div className="aspect-w-16 aspect-h-9 relative group">
@@ -266,29 +300,30 @@ const BannerComponent :React.FC = () => {
                             </div>
                         </div>
                     )}
-                <div className="p-4">
-                    <h3 className="text-lg font-semibold mb-2">{banner?.title}</h3>
-                    <div className="flex items-center justify-between">
-                    <span className={`px-2 py-1 rounded-full text-sm ${
-                        banner.status === true ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                        {banner?.status === true? 'Active' : 'Inactive'}
-                    </span>
-                    <span className="text-sm text-gray-500 capitalize">{banner?.type}</span>
+                    <div className="p-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold mb-2">{banner?.title}</h3>
+                            <span className={`px-2 py-1 rounded-full text-sm bg-gray-400 text-gray-900 font-bold`}>
+                                {banner?.priority}
+                            </span>
+                        </div>
+                        <button className="flex items-center justify-between" onClick={() => handleToggleStatus(banner?._id!,banner.status!)}>
+                            <span className={`px-2 py-1 rounded-full text-sm mx-2 hover:bg-slate-500 hover:text-sm ${
+                                banner.status === true ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                                {banner?.status === true? 'Active' : 'Inactive'}
+                            </span>
+                            <span className="text-sm text-gray-500 capitalize">{banner?.type}</span>
+                        </button>
+                        <div className="mx-auto mt-6 mb-4 px-4 sm:px-0 max-w-3xl">
+                            <p className="text-md sm:text-lg text-gray-600 leading-relaxed tracking-normal truncate">
+                                {banner?.description}
+                            </p>
+                        </div>
                     </div>
-                    <div className="mx-auto mt-6 mb-4 px-4 sm:px-0 max-w-3xl">
-                        <p className="text-md sm:text-lg text-gray-600 leading-relaxed tracking-normal truncate">
-                            {banner?.description}
-                        </p>
                     </div>
-                </div>
-                </div>
-            ))) : (
-                <div className="bg-gray-300 rounded-lg shadow-md p-6 text-center">
-                    <h2 className="text-xl font-semibold">No Banners Found</h2>
-                </div>
-            )
-        }
+                 )))
+                }
             </div>
         </div>
         </div>
