@@ -12,6 +12,8 @@ import { RootState } from '../../redux/store';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
+import { loadStripe } from '@stripe/stripe-js';
+
 // In your frontend Lesson interface
 export interface Lesson {
     _id?: string;
@@ -81,29 +83,25 @@ const CourseDetailPage: React.FC = () => {
         await fetchCourse(response?.data);
       } 
       else {
-      //   const stripe = await loadStripe(import.meta.env.VITE_STRIPE_KEY!).catch(err => {
-      //     console.error('Stripe loading error:', err);
-      //     return null;
-      //   });
-
-      //   if (!stripe) {
-      //     toast.error("Stripe failed to load.");
-      //     return;
-      //   }
-  
+        const stripe = await loadStripe(import.meta.env.VITE_STRIPE_KEY!);
+        
         const response = await commonRequest("POST", `${URL}/payment/create-session`, { userId, courseId }, config);
   
         // if (!response?.success) {
         //   toast.error(response?.message || "Something went wrong.");
         //   return;
         // }
-        window.location.href = response?.data
-        console.log(response.data, "response from backend")
-  
-        // const sessionId = response.data.sessionId;
+
+        if( stripe && response?.sessionId){
+          const sessionId = response?.sessionId;
+
+
+          stripe.redirectToCheckout({ sessionId });
+          console.log(response.data, "response from backend")
+          // window.location.href = response?.data
+        }
   
         // Redirect to Stripe Checkout
-        // const result = await stripe.redirectToCheckout({ sessionId });
         // if (result.error) {
 
         //   toast.error(result.error.message || "Failed to redirect to Stripe.");

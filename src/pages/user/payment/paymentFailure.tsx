@@ -1,12 +1,20 @@
 // PaymentFailure.tsx
 import React from "react";
-import { useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 
 
 const PaymentFailure: React.FC = () => {
     const { user } = useOutletContext<{ user: any }>();
     const {courseId} = useParams<{courseId: any}>();
-    console.log(courseId)
+    const navigate = useNavigate();
+
+    const handleContinue = () => {
+      try {
+        navigate(`/details/${courseId}`)
+      } catch (error) {
+        console.error("Error in handleContinue", error)
+      }
+    }
 
   return (
     <div className="text-center">
@@ -15,6 +23,9 @@ const PaymentFailure: React.FC = () => {
         Sorry, <span className="font-bold">{user?.username ?? 'name'}</span>. There was an issue processing your payment. Please try
         again.
       </p>
+      <button onClick={() => handleContinue()} className="mt-2 px-6 py-3 bg-fuchsia-700 text-white font-semibold rounded-lg shadow-md hover:bg-fuchsia-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:ring-opacity-50">
+        Continue
+      </button>
       {/* <img
         src={
         typeof course?.basicDetails?.thumbnail === "string"

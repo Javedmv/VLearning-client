@@ -14,7 +14,7 @@ const PaymentSuccess: React.FC = () => {
     try {
         navigate(`/details/${courseIds}`)
     } catch (error) {
-        
+        console.error("Error in handleContinue", error)
     }
   }
   
