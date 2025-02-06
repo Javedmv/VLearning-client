@@ -81,32 +81,35 @@ const CourseDetailPage: React.FC = () => {
   
         toast.success(response?.message);
         await fetchCourse(response?.data);
-      } 
-      else {
+      } else {
         const stripe = await loadStripe(import.meta.env.VITE_STRIPE_KEY!);
         
         const response = await commonRequest("POST", `${URL}/payment/create-session`, { userId, courseId }, config);
-  
-        // if (!response?.success) {
-        //   toast.error(response?.message || "Something went wrong.");
-        //   return;
-        // }
-
-        if( stripe && response?.sessionId){
-          const sessionId = response?.sessionId;
-
-
-          stripe.redirectToCheckout({ sessionId });
-          console.log(response.data, "response from backend")
-          // window.location.href = response?.data
+      
+        if (!response?.success) { 
+          toast.error(response?.message || "Something went wrong."); 
+          return; 
         }
-  
-        // Redirect to Stripe Checkout
-        // if (result.error) {
-
-        //   toast.error(result.error.message || "Failed to redirect to Stripe.");
-        // }
-      }
+      
+        if (!stripe) { 
+          toast.error("Stripe failed to load. Please try again."); 
+          return; 
+        }
+      
+        if (!response?.sessionId) {
+          toast.error("Failed to create a Stripe session.");
+          return;
+        }
+      
+        const sessionId = response.sessionId;
+        console.log(response.data, "response from backend");
+      
+        const result = await stripe.redirectToCheckout({ sessionId });
+      
+        if (result?.error) {
+          toast.error(result.error.message || "Failed to redirect to Stripe.");
+        }
+      }      
     } catch (error) {
       console.error("Payment failed:", error);
       toast.error("Something went wrong while processing the payment.");

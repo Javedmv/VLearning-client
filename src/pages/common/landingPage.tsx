@@ -31,6 +31,7 @@ const LandingPage:React.FC = () => {
         fetchBanners();
     },[])
 
+    console.log(highPriorityBanner.length)
     // console.log(,"abother variable for user")
     return (
         <>
