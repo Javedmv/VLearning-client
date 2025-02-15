@@ -9,6 +9,7 @@ const BannerComponent :React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [banners, setBanners] = useState<Banner[]>([]);
     const [isEditing, setIsEditing] = useState(false);
+    const [editBannerId, setEditBannerId] = useState("");
 
     const [newBanner, setNewBanner] = useState<Omit<Banner, '_id'>>({
     title: '',
@@ -123,7 +124,7 @@ const BannerComponent :React.FC = () => {
             }
             setIsEditing(true);
             const { priority, imageUrl, status, title, type, _id, description } = banner;
-    
+            setEditBannerId(_id as string);
             setNewBanner(() => ({
                 title,
                 status,
@@ -160,13 +161,54 @@ const BannerComponent :React.FC = () => {
                 setNewBanner({ ...newBanner, description: '' });
                 return;
             }
-            console.log("Edit button")
-            console.log(newBanner);
-            console.log(fileInputRef)
-            
+
+            const formData = new FormData();
+            formData.append('title', newBanner.title);
+            formData.append('status', newBanner.status.toString());
+            formData.append('type', newBanner.type);
+            formData.append('description', newBanner.description || '');
+            formData.append('priority', newBanner.priority as "high" | "medium" | "low");
+            formData.append("_id",editBannerId);
+
+            console.log(fileInputRef.current?.files?.[0])
+            if (fileInputRef.current?.files?.[0]) {
+                formData.append('files.banner', fileInputRef.current.files[0]);
+            }
+
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}: ${value}`);
+            }
+
+            const response = await commonRequest('PUT', `${URL}/auth/multipart/edit-banner`, formData, configMultiPart);
+
+            if (!response?.success) {
+                toast.error(response.message);
+                return;
+            }
+
+            if (response?.success) {
+                console.log(response)
+                toast.success(response.message);
+                fetchBanners();
+            }
         } catch (error) {
             console.error("handleEditBannerButton error:", error);
-        }
+        } finally {
+            setIsEditing(false);
+            setEditBannerId("")
+            setNewBanner(() => ({
+                title: '',
+                status: true,
+                type: 'promotional',
+                imageUrl: '',
+                description: '',
+                priority: 'low'
+                }));
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                setPreviewImage("")
+            }
     }
 
     const handleEditBannerCancelButton = async () => {
@@ -180,6 +222,7 @@ const BannerComponent :React.FC = () => {
                 description: '',
                 priority: 'low'
             }));
+            setEditBannerId("")
             setPreviewImage("");
         } catch (error) {
             console.error("handleEditBannerCancelButton error:", error);
