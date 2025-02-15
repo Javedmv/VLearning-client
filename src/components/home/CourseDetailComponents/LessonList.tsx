@@ -2,16 +2,21 @@ import React from 'react';
 import { Play, Clock } from 'lucide-react';
 import { Lesson } from '../../../pages/common/CourseDetailPage';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface LessonListProps {
   lessons?: Lesson[];
   onSelectLesson?: (lesson: Lesson) => void; // No change needed here
   currentLessonId?: string;
   isEnrolled: Boolean;
+  courseId: string;
 }
 
 
-const LessonList: React.FC<LessonListProps> = ({ lessons, onSelectLesson, currentLessonId,isEnrolled }) => {
+const LessonList: React.FC<LessonListProps> = ({ lessons, onSelectLesson, currentLessonId,isEnrolled, courseId }) => {
+
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white rounded-lg shadow-md">
       <div className="p-6 border-b">
@@ -24,7 +29,8 @@ const LessonList: React.FC<LessonListProps> = ({ lessons, onSelectLesson, curren
             key={lesson._id}
             onClick={() => {
               if (isEnrolled) {
-                onSelectLesson?.(lesson); // Trigger onSelectLesson if enrolled
+                // Navigate to the new page with courseId and lessonId
+                navigate(`/my-learnings`)
               } else {
                 toast.error('Enroll to continue!!'); // Show a warning if not enrolled
               }

@@ -184,7 +184,13 @@ const router = (user: any) =>
       },
       {
         path: "my-learnings",
-        element: <MyLearnings />
+        element: <MyLearnings />,
+        // children: [
+        //   {
+        //     path: "/:courseId",
+        //     // element: </>
+        //   }
+        // ]
       },
       {
         path: "instructor/:id",

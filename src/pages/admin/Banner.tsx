@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 const BannerComponent :React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [banners, setBanners] = useState<Banner[]>([]);
+    const [isEditing, setIsEditing] = useState(false);
 
     const [newBanner, setNewBanner] = useState<Omit<Banner, '_id'>>({
     title: '',
@@ -114,14 +115,30 @@ const BannerComponent :React.FC = () => {
             console.error("Delete error:", error);
         }
     }
-    const handleEditCourse = (banner:Banner) => {
+    const handleEditCourse = (banner: Banner) => {
         try {
-            console.log(banner,"edit banner");
+            if (!banner) {
+                toast.error("Failed to load the banner")
+                return;
+            }
+            setIsEditing(true);
+            const { priority, imageUrl, status, title, type, _id, description } = banner;
+    
+            setNewBanner(() => ({
+                title,
+                status,
+                type,
+                imageUrl,
+                description: description || "", // Simplified check
+                priority
+            }));
+            setPreviewImage(imageUrl as string);    
             toast.success('Edit Banner coming soon!');
         } catch (error) {
-            console.log(error);
+            console.error('Error in handleEditCourse:', error);
         }
-    }
+    };
+    
     const handleToggleStatus = async (id: string, status: boolean) => {
         try {
             const response = await commonRequest('PUT', `${URL}/auth/banner/toggle-status/${id}`, { status }, config);
@@ -133,6 +150,39 @@ const BannerComponent :React.FC = () => {
             toast.success(response.message);
         } catch (error) {
             console.error("Toggle status error:", error);
+        }
+    };
+
+    const handleEditBannerButton = async () => {
+        try {
+            if (newBanner.description && newBanner.description.length > 50) {
+                toast.error("Description should be less than 50 characters");
+                setNewBanner({ ...newBanner, description: '' });
+                return;
+            }
+            console.log("Edit button")
+            console.log(newBanner);
+            console.log(fileInputRef)
+            
+        } catch (error) {
+            console.error("handleEditBannerButton error:", error);
+        }
+    }
+
+    const handleEditBannerCancelButton = async () => {
+        try {
+            setIsEditing(false);
+            setNewBanner(() => ({
+                title: '',
+                status: true,
+                type: 'promotional',
+                imageUrl: '',
+                description: '',
+                priority: 'low'
+            }));
+            setPreviewImage("");
+        } catch (error) {
+            console.error("handleEditBannerCancelButton error:", error);
         }
     };
     
@@ -184,7 +234,8 @@ const BannerComponent :React.FC = () => {
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
-                                <option value="high">High <span className="text-gray-500 text-sm">(shows in top)</span></option>                            </select>
+                                <option value="high">High (shows in top)</option>
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -247,14 +298,36 @@ const BannerComponent :React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <button
-                    onClick={handleCreateBanner}
-                    disabled={!newBanner.title || !newBanner.imageUrl}
-                    className="mt-6 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Banner
-                </button>
+                {   isEditing?
+                    (
+                       <>
+                       <button
+                        onClick={handleEditBannerButton}
+                        disabled={!newBanner.title || !newBanner.imageUrl}
+                        className="mt-6 inline-flex items-center px-4 mr-2 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                        Edit Banner
+                        </button>
+                        <button
+                        onClick={handleEditBannerCancelButton}
+                        className="mt-6 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                        Cancel
+                        </button>
+                       </> 
+                    ):
+                    (<>
+                        <button
+                        onClick={handleCreateBanner}
+                        disabled={!newBanner.title || !newBanner.imageUrl}
+                        className="mt-6 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Banner
+                        </button>
+                    </>
+                    )
+                }
             </div>
 
             {/* Banner List */}

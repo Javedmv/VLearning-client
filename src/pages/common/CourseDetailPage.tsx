@@ -179,6 +179,7 @@ const CourseDetailPage: React.FC = () => {
                   onSelectLesson={(lesson) => setCurrentLesson(lesson)} // Update the currentLesson on selection
                   currentLessonId={currentLesson?._id}
                   isEnrolled={isEnrolled}
+                  courseId={id!}
                 />
               </div>
             </div>

@@ -1,108 +1,174 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BookOpen, Clock, PlayCircle } from 'lucide-react';
 import Navbar from '../../components/home/Navbar';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
-
-// Mock data - In a real app, this would come from an API/database
-const courses = [
-  {
-    id: 1,
-    title: "Advanced React Patterns",
-    progress: 65,
-    lastAccessed: "Lesson 4: Custom Hooks",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=400",
-    totalModules: 8,
-    completedModules: 5
-  },
-  {
-    id: 2,
-    title: "TypeScript Masterclass",
-    progress: 30,
-    lastAccessed: "Lesson 2: Advanced Types",
-    thumbnail: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?auto=format&fit=crop&q=80&w=400",
-    totalModules: 10,
-    completedModules: 3
-  },
-  {
-    id: 3,
-    title: "Node.js Backend Development",
-    progress: 85,
-    lastAccessed: "Lesson 7: Authentication",
-    thumbnail: "https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=400",
-    totalModules: 8,
-    completedModules: 7
-  },
-  {
-    id: 3,
-    title: "Node.js Backend Development",
-    progress: 85,
-    lastAccessed: "Lesson 7: Authentication",
-    thumbnail: "https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=400",
-    totalModules: 8,
-    completedModules: 7
-  }
-];
+import { commonRequest, URL as URLS } from '../../common/api';
+import { config } from '../../common/configurations';
+import toast from 'react-hot-toast';
+import { IEnrollment } from '../../types/Enrollments';
 
 const MyLearnings: React.FC = () => {
-    const { user } = useSelector((state: RootState) => state.user);
+  const { user } = useSelector((state: RootState) => state.user);
+  const [courses, setCourses] = useState<IEnrollment[]>([]);
+  const [imageUrls, setImageUrls] = useState<{ [key: string]: string }>({});
 
+  const fetchAllUserCourses = async () => {
+    try {
+      const res = await commonRequest('GET', `${URLS}/course/my-learning`, {}, config);
+      if (!res.success) {
+        toast.error(res.message || "Sorry, something went wrong.");
+        return;
+      }
+      if (res?.success && res.data) {
+        setCourses(res.data);
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllUserCourses();
+  }, []);
+
+  // Convert File objects to URLs
+  useEffect(() => {
+    const urls: { [key: string]: string } = {};
+    courses.forEach((enrollment) => {
+      if (typeof enrollment.courseId === "object") {
+        const thumbnail = enrollment.courseId.basicDetails?.thumbnail;
+        if (thumbnail instanceof File) {
+          urls[enrollment._id.toString()] = URL.createObjectURL(thumbnail);
+        } else if (typeof thumbnail === "string") {
+          urls[enrollment._id.toString()] = thumbnail;
+        }
+      }
+    });
+    setImageUrls(urls);
+
+    return () => {
+      // Revoke object URLs to free up memory
+      Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [courses]);
 
   return (
     <>
-        <Navbar User={user} />
-        <br></br>
-        <div className="max-w-6xl mx-auto p-6 bg-pink-200">
+      <Navbar User={user} />
+      <br />
+      <div className="max-w-6xl mx-auto p-6 bg-pink-200">
         <div className="flex items-center gap-2 mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 underline">My Learnings</h1>
+          <h1 className="text-3xl font-bold text-gray-800 underline">My Learnings</h1>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
-                <div key={course.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+        {courses.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {courses.map((enrollment: IEnrollment) => (
+              <div
+                key={enrollment._id}
+                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+              >
                 <div className="relative h-48">
-                <img 
-                    src={course.thumbnail} 
-                    alt={course.title}
+                  <img
+                    src={imageUrls[enrollment._id.toString()] || "https://placehold.co/300x200"}
+                    alt={typeof enrollment.courseId === "object" ? enrollment.courseId.basicDetails?.title : "Course Image"}
                     className="w-full h-full object-cover"
-                    />
-                <div className="absolute inset-0 bg-black bg-opacity-20">
-                    <button className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <PlayCircle className="w-16 h-16 text-white hover:text-indigo-400 transition-colors" />
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                    <button className="focus:outline-none">
+                      <PlayCircle className="w-16 h-16 text-white hover:text-indigo-400 transition-colors" />
                     </button>
-                </div>
+                  </div>
                 </div>
 
                 <div className="p-5">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{course.title}</h3>
-                
-                <div className="mb-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Progress</span>
-                    <span>{course.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                        className="bg-indigo-600 h-2 rounded-full" 
-                        style={{ width: `${course.progress}%` }}
-                        />
-                    </div>
-                </div>
+                  {/* Title & Category in One Row */}
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-xl font-semibold text-gray-800">
+                      {typeof enrollment.courseId === "object" ? enrollment.courseId.basicDetails?.title : "Course Title"}
+                    </h3>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <BookOpen className="w-4 h-4" />
-                    <span>{course.completedModules}/{course.totalModules} Lessons</span>
-                </div>
+                    {enrollment.courseId &&
+                      typeof enrollment.courseId !== "string" &&
+                      enrollment.courseId.basicDetails?.category &&
+                      typeof enrollment.courseId.basicDetails.category === "object" && (
+                        <span className="text-sm font-medium text-white bg-fuchsia-600 px-3 py-1 rounded-full">
+                          {enrollment.courseId.basicDetails.category.name}
+                        </span>
+                      )}
+                  </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    <span>Last accessed: {course.lastAccessed}</span>
+                  {/* Progress Bar */}
+                  {enrollment.courseId &&
+                    typeof enrollment.courseId !== "string" &&
+                    enrollment.progress?.completedLessons &&
+                    enrollment.courseId.courseContent?.lessons && (
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm text-gray-600 mb-1">
+                          <span>Progress</span>
+                          <span>
+                            {Math.round(
+                              (enrollment.progress.completedLessons.length /
+                                enrollment.courseId.courseContent.lessons.length) * 100
+                            ) || 0}
+                            %
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-indigo-600 h-2 rounded-full"
+                            style={{
+                              width: `${
+                                Math.round(
+                                  (enrollment.progress.completedLessons.length /
+                                    enrollment.courseId.courseContent.lessons.length) * 100
+                                ) || 0
+                              }%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Lessons Completed */}
+                  {enrollment.courseId &&
+                    typeof enrollment.courseId !== "string" &&
+                    enrollment.courseId.courseContent?.lessons && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <BookOpen className="w-4 h-4" />
+                        <span>
+                          {enrollment.progress?.completedLessons?.length || 0}/
+                          {enrollment.courseId.courseContent.lessons.length} Lessons
+                        </span>
+                      </div>
+                    )}
+
+                  {/* Last Watched */}
+                  {enrollment.courseId &&
+                    typeof enrollment.courseId !== "string" &&
+                    enrollment.progress?.lessonProgress &&
+                    enrollment.progress.currentLesson && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          Last watched:{" "}
+                          {Math.floor(
+                            enrollment.progress.lessonProgress[enrollment.progress.currentLesson]?.lastWatchedPosition ||
+                              0
+                          )}
+                          s
+                        </span>
+                      </div>
+                    )}
                 </div>
-                </div>
-            </div>
+              </div>
             ))}
-        </div>
-        </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-700 font-semibold text-lg">No Purchased Courses</div>
+        )}
+      </div>
     </>
   );
 };
