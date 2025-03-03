@@ -18,3 +18,12 @@
 .blink {
   animation: blink 1s infinite;
 }
+/* Hide scrollbar for the entire application */
+::-webkit-scrollbar {
+  display: none;
+}
+
+html, body {
+  scrollbar-width: none; /* For Firefox */
+  -ms-overflow-style: none; /* For Internet Explorer & Edge */
+}
