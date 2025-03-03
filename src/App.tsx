@@ -1,48 +1,49 @@
+import React,{ Suspense, useEffect } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import './App.css';
-import future from './types/createBrowserConfig';
-
-import LandingPage from './pages/common/landingPage';
-import Login from './pages/common/login';
-import Signup from './pages/common/signup';
-import Dashboard from './pages/admin/Dashboard';
-import Students from './pages/admin/Students';
-import DashboardHome from './pages/admin/DashboardHome';
-import Instructors from './pages/admin/Instructors';
-import Courses from './pages/admin/Courses';
-import Messages from './pages/admin/Messages';
-import Schedule from './pages/admin/Schedule';
-// import Analytics from './pages/admin/Analytics';
-import Settings from './pages/admin/Settings';
-import UserForm from './pages/user/UserForm';
-import { AppDispatch, RootState } from './redux/store';
-import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUserDataFirst } from './redux/actions/user/userAction';
-import ProfilePage from './pages/common/ProfilePage';
-import DashboardLayout from './pages/instructor/DashboardLayout';
-import DashboardPage from './pages/instructor/Dashboard';
-import CoursesPage from './pages/instructor/CoursesPage';
-import AddCoursePage from './pages/instructor/AddCoursesPage';
-import InstructorRequestStatus from './pages/instructor/InstructorReqStatus';
-import Teach from './pages/user/Teach';
-import CategoriesPage from './pages/admin/Category';
-import CourseHomePage from './pages/common/CourseHomePage';
-import CourseDetailPage from './pages/common/CourseDetailPage';
-import PaymentDashboard from './pages/user/payment/paymentDashboard';
-import PaymentSuccess from './pages/user/payment/paymentSuccess';
-import PaymentFailure from './pages/user/payment/paymentFailure';
-import MyLearnings from './pages/user/MyLearnings';
-import InstructorDetails from './pages/user/InstuctorDetailsPage';
-import EditCoursePage from './pages/instructor/EditCoursePage';
-import BannerComponent from './pages/admin/Banner';
+import { AppDispatch, RootState } from './redux/store';
+import future from './types/createBrowserConfig';
+
+// Lazy Loading Components
+const LandingPage = React.lazy(() => import('./pages/common/landingPage'));
+const Login = React.lazy(() => import('./pages/common/login'));
+const Signup = React.lazy(() => import('./pages/common/signup'));
+const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
+const Students = React.lazy(() => import('./pages/admin/Students'));
+const DashboardHome = React.lazy(() => import('./pages/admin/DashboardHome'));
+const Instructors = React.lazy(() => import('./pages/admin/Instructors'));
+const Courses = React.lazy(() => import('./pages/admin/Courses'));
+const Messages = React.lazy(() => import('./pages/admin/Messages'));
+const Schedule = React.lazy(() => import('./pages/admin/Schedule'));
+const Settings = React.lazy(() => import('./pages/admin/Settings'));
+const UserForm = React.lazy(() => import('./pages/user/UserForm'));
+const ProfilePage = React.lazy(() => import('./pages/common/ProfilePage'));
+const DashboardLayout = React.lazy(() => import('./pages/instructor/DashboardLayout'));
+const DashboardPage = React.lazy(() => import('./pages/instructor/Dashboard'));
+const CoursesPage = React.lazy(() => import('./pages/instructor/CoursesPage'));
+const AddCoursePage = React.lazy(() => import('./pages/instructor/AddCoursesPage'));
+const InstructorRequestStatus = React.lazy(() => import('./pages/instructor/InstructorReqStatus'));
+const Teach = React.lazy(() => import('./pages/user/Teach'));
+const CategoriesPage = React.lazy(() => import('./pages/admin/Category'));
+const CourseHomePage = React.lazy(() => import('./pages/common/CourseHomePage'));
+const CourseDetailPage = React.lazy(() => import('./pages/common/CourseDetailPage'));
+const PaymentDashboard = React.lazy(() => import('./pages/user/payment/paymentDashboard'));
+const PaymentSuccess = React.lazy(() => import('./pages/user/payment/paymentSuccess'));
+const PaymentFailure = React.lazy(() => import('./pages/user/payment/paymentFailure'));
+const MyLearnings = React.lazy(() => import('./pages/user/MyLearnings'));
+const InstructorDetails = React.lazy(() => import('./pages/user/InstuctorDetailsPage'));
+const EditCoursePage = React.lazy(() => import('./pages/instructor/EditCoursePage'));
+const BannerComponent = React.lazy(() => import('./pages/admin/Banner'));
+const LearningCourseDetail = React.lazy(() => import('./pages/user/LearningCourseDetail'));
+import PaymentHistory from './pages/user/payment/paymentHistory';
+import ChatPage from './pages/instructor/ChatPage';
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
-  if (!user) return null; // Do nothing if user isn't loaded yet
-
-  if (user.isNewUser) return <Navigate to="/user-form" replace />; // Redirect new users to /user-form
-
+  if (!user) return null;
+  if (user.isNewUser) return <Navigate to="/user-form" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   return null;
 };
@@ -54,19 +55,29 @@ const router = (user: any) =>
       {
         path: '',
         element: (
-          <>
+          <Suspense fallback={<div>Loading...</div>}>
             <RoleBasedRedirect user={user} />
             <LandingPage />
-          </>
+          </Suspense>
         ),
       },
       {
-        path:"/course",
-        element: <CourseHomePage/>,
+        path: '/course',
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <CourseHomePage />
+          </Suspense>
+        ),
       },
       {
-        path:"/details/:id",
-        element: user? (<CourseDetailPage />) : <Login />
+        path: '/details/:id',
+        element: user ? (
+          <Suspense fallback={<div>Loading...</div>}>
+            <CourseDetailPage />
+          </Suspense>
+        ) : (
+          <Login />
+        ),
       },
       {
         path: '/login',
@@ -78,146 +89,154 @@ const router = (user: any) =>
       },
       {
         path: '/user-form',
-        element:
-          user && user.isNewUser ? (
-            <UserForm />
-          ) : (
-            <Navigate to="/" replace />
-          ), // Restrict access to /user-form
+        element: user && user.isNewUser ? <UserForm /> : <Navigate to="/" replace />,
       },
       {
         path: '/profile',
-        element: (
-           user ? <ProfilePage /> : <Navigate to="/" replace />
-        )
+        element: user ? (
+          <Suspense fallback={<div>Loading...</div>}>
+            <ProfilePage />
+          </Suspense>
+        ) : (
+          <Navigate to="/" replace />
+        ),
       },
       {
-        path:"instructor-req-stat",
-        element: user?.role === "instructor" && <InstructorRequestStatus />
+        path: 'instructor-req-stat',
+        element: user?.role === 'instructor' && (
+          <Suspense fallback={<div>Loading...</div>}>
+            <InstructorRequestStatus />
+          </Suspense>
+        ),
       },
       {
-        path:"teach",
-        element: user?.role === "student" ? <Teach/> : <Navigate to="/" replace />
+        path: 'teach',
+        element: user?.role === 'student' ? (
+          <Suspense fallback={<div>Loading...</div>}>
+            <Teach />
+          </Suspense>
+        ) : (
+          <Navigate to="/" replace />
+        ),
       },
       {
-        path:"/instructor",
-        element: (user && user?.role === 'instructor' ? <DashboardLayout user={user}/> : <Navigate to="/" replace />),
-        children : [
+        path: '/instructor',
+        element:
+          user && user?.role === 'instructor' ? (
+            <Suspense fallback={<div>Loading...</div>}>
+              <DashboardLayout user={user} />
+            </Suspense>
+          ) : (
+            <Navigate to="/" replace />
+          ),
+        children: [
           {
-            index:true,
-            element: <DashboardPage />
+            index: true,
+            element: <DashboardPage />,
           },
           {
-            path:"courses",
-            element:<CoursesPage/>
+            path: 'courses',
+            element: <CoursesPage />,
           },
           {
-            path:"add-course",
-            element: <AddCoursePage/>
+            path: 'add-course',
+            element: <AddCoursePage />,
           },
-        ]
+          {
+            path: 'chat',
+            element: <ChatPage/>
+          }
+        ],
       },
       {
         path: '/admin',
-        element: user?.role === 'admin' ? <Dashboard user={user}/> : <Navigate to="/" replace />,
+        element:
+          user?.role === 'admin' ? (
+            <Suspense fallback={<div>Loading...</div>}>
+              <Dashboard user={user} />
+            </Suspense>
+          ) : (
+            <Navigate to="/" replace />
+          ),
         children: [
-          {
-            path: '',
-            element: <DashboardHome />,
-          },
-          {
-            path: 'students',
-            element: <Students />,
-          },
-          {
-            path: 'instructors',
-            element: <Instructors />,
-          },
-          {
-            path: 'category',
-            element: <CategoriesPage />
-          }
-          ,
-          {
-            path: 'courses',
-            element: <Courses />,
-          },
-          {
-            path: 'messages',
-            element: <Messages />,
-          },
-          {
-            path: 'schedule',
-            element: <Schedule />,
-          },
-          {
-            path: 'banner',
-            element: <BannerComponent />,
-          },
-          {
-            path: 'settings',
-            element: <Settings />,
-          },
-          {
-            path: 'logout',
-            element: <Navigate to="/" replace />,
-          },
-          {
-            path: '*',
-            element: <Navigate to="/admin" replace />,
-          },
+          { path: '', element: <DashboardHome /> },
+          { path: 'students', element: <Students /> },
+          { path: 'instructors', element: <Instructors /> },
+          { path: 'category', element: <CategoriesPage /> },
+          { path: 'courses', element: <Courses /> },
+          { path: 'messages', element: <Messages /> },
+          { path: 'schedule', element: <Schedule /> },
+          { path: 'banner', element: <BannerComponent /> },
+          { path: 'settings', element: <Settings /> },
+          { path: 'logout', element: <Navigate to="/" replace /> },
+          { path: '*', element: <Navigate to="/admin" replace /> },
         ],
       },
       {
-        path: "payment",
-        element: <PaymentDashboard user={user} />,
+        path: 'payment',
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <PaymentDashboard user={user} />
+          </Suspense>
+        ),
         children: [
-          {
-            path: "success/:courseId",
-            element: <PaymentSuccess />,
-          },
-          {
-            path: "failed/:courseId",
-            element: <PaymentFailure />,
-          },
+          { path: 'success/:courseId', element: <PaymentSuccess /> },
+          { path: 'failed/:courseId', element: <PaymentFailure /> },
         ],
       },
       {
-        path: "my-learnings",
-        element: <MyLearnings />,
-        // children: [
-        //   {
-        //     path: "/:courseId",
-        //     // element: </>
-        //   }
-        // ]
+        path: 'my-learnings',
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <MyLearnings />
+          </Suspense>
+        ),
       },
       {
-        path: "instructor/:id",
-        element: <InstructorDetails/>
+        path: 'my-learnings/course/:id',
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <LearningCourseDetail />
+          </Suspense>
+        ),
       },
       {
-        path:'edit-course',
-        element: user?.role === "instructor" && <EditCoursePage />
+        path: 'instructor/:id',
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <InstructorDetails />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'edit-course',
+        element: user?.role === 'instructor' && (
+          <Suspense fallback={<div>Loading...</div>}>
+            <EditCoursePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "payment/history",
+        element: user && (
+          <Suspense fallback={<div>Loading...</div>}>
+            <PaymentHistory />
+          </Suspense>
+        )
       }
     ],
-    // this is given to remove the warning in browser
     { future }
   );
 
 const App = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
-  // console.log(user, 'user in app.tsx');
 
   useEffect(() => {
-    if (!user) {
-      dispatch(getUserDataFirst());
-    }
+    if (!user) dispatch(getUserDataFirst());
   }, [user, dispatch]);
 
-
-  return <RouterProvider router={router(user)} future={{v7_startTransition: true}} />;
+  return <RouterProvider router={router(user)} future={{ v7_startTransition: true }} />;
 };
 
 export default App;

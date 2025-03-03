@@ -7,14 +7,18 @@ import { commonRequest, URL as URLS } from '../../common/api';
 import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
 import { IEnrollment } from '../../types/Enrollments';
+import { Link, useNavigate } from 'react-router-dom';
 
 const MyLearnings: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const [courses, setCourses] = useState<IEnrollment[]>([]);
   const [imageUrls, setImageUrls] = useState<{ [key: string]: string }>({});
+  const [loading, setLoading] = useState(true); // New loading state
+  const navigate = useNavigate();
 
   const fetchAllUserCourses = async () => {
     try {
+      setLoading(true);
       const res = await commonRequest('GET', `${URLS}/course/my-learning`, {}, config);
       if (!res.success) {
         toast.error(res.message || "Sorry, something went wrong.");
@@ -25,6 +29,8 @@ const MyLearnings: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,28 +59,73 @@ const MyLearnings: React.FC = () => {
     };
   }, [courses]);
 
+  const handleCourseDetails = async (enrollmentId: string) => {
+    try {
+      const enrolledCourse = courses.find(course => course._id === enrollmentId);
+      if (!enrolledCourse) {
+        console.error("Course not found for enrollmentId:", enrollmentId);
+        return;
+      }
+      navigate(`/my-learnings/course/${enrolledCourse._id}`);
+    } catch (error: any) {
+      console.error("Error in handleCourseDetails:", error);
+    }
+  };
+
+  // Shimmer Skeleton Loader Component
+  const ShimmerCard = () => (
+    <div className="bg-gray-200 animate-pulse rounded-xl shadow-md overflow-hidden">
+      <div className="h-48 bg-gray-300"></div>
+      <div className="p-5">
+        <div className="h-6 bg-gray-400 rounded w-3/4 mb-2"></div>
+        <div className="h-4 bg-gray-400 rounded w-1/2 mb-4"></div>
+        <div className="h-2 bg-gray-400 rounded w-full mb-2"></div>
+        <div className="h-2 bg-gray-400 rounded w-5/6 mb-2"></div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Navbar User={user} />
       <br />
       <div className="max-w-6xl mx-auto p-6 bg-pink-200">
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 underline">My Learnings</h1>
+          <Link
+            to="/payment/history" // Adjust the route if needed
+            className="text-fuchsia-800 hover:underline text-lg"
+          >
+            💳 Payment History
+          </Link>
         </div>
 
-        {courses.length > 0 ? (
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, index) => (
+              <ShimmerCard key={index} />
+            ))}
+          </div>
+        ) : courses.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((enrollment: IEnrollment) => (
               <div
                 key={enrollment._id}
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                onClick={() => handleCourseDetails(enrollment._id)}
               >
                 <div className="relative h-48">
-                  <img
-                    src={imageUrls[enrollment._id.toString()] || "https://placehold.co/300x200"}
-                    alt={typeof enrollment.courseId === "object" ? enrollment.courseId.basicDetails?.title : "Course Image"}
-                    className="w-full h-full object-cover"
-                  />
+                  {imageUrls[enrollment._id.toString()] ? (
+                    <img
+                      src={imageUrls[enrollment._id.toString()]}
+                      alt={typeof enrollment.courseId === "object" ? enrollment.courseId.basicDetails?.title : "Course Image"}
+                      className="w-full h-full object-cover"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-300" />
+                  )}
+
                   <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
                     <button className="focus:outline-none">
                       <PlayCircle className="w-16 h-16 text-white hover:text-indigo-400 transition-colors" />
@@ -83,7 +134,6 @@ const MyLearnings: React.FC = () => {
                 </div>
 
                 <div className="p-5">
-                  {/* Title & Category in One Row */}
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="text-xl font-semibold text-gray-800">
                       {typeof enrollment.courseId === "object" ? enrollment.courseId.basicDetails?.title : "Course Title"}
@@ -93,13 +143,12 @@ const MyLearnings: React.FC = () => {
                       typeof enrollment.courseId !== "string" &&
                       enrollment.courseId.basicDetails?.category &&
                       typeof enrollment.courseId.basicDetails.category === "object" && (
-                        <span className="text-sm font-medium text-white bg-fuchsia-600 px-3 py-1 rounded-full">
+                        <span className="text-sm font-medium text-white bg-fuchsia-600 px-2 py-1 rounded-full whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] inline-block">
                           {enrollment.courseId.basicDetails.category.name}
                         </span>
                       )}
                   </div>
 
-                  {/* Progress Bar */}
                   {enrollment.courseId &&
                     typeof enrollment.courseId !== "string" &&
                     enrollment.progress?.completedLessons &&
@@ -131,7 +180,6 @@ const MyLearnings: React.FC = () => {
                       </div>
                     )}
 
-                  {/* Lessons Completed */}
                   {enrollment.courseId &&
                     typeof enrollment.courseId !== "string" &&
                     enrollment.courseId.courseContent?.lessons && (
@@ -140,24 +188,6 @@ const MyLearnings: React.FC = () => {
                         <span>
                           {enrollment.progress?.completedLessons?.length || 0}/
                           {enrollment.courseId.courseContent.lessons.length} Lessons
-                        </span>
-                      </div>
-                    )}
-
-                  {/* Last Watched */}
-                  {enrollment.courseId &&
-                    typeof enrollment.courseId !== "string" &&
-                    enrollment.progress?.lessonProgress &&
-                    enrollment.progress.currentLesson && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          Last watched:{" "}
-                          {Math.floor(
-                            enrollment.progress.lessonProgress[enrollment.progress.currentLesson]?.lastWatchedPosition ||
-                              0
-                          )}
-                          s
                         </span>
                       </div>
                     )}

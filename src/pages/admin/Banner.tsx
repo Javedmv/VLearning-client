@@ -1,4 +1,4 @@
-import { Edit, Eye, ImageIcon, Layout, Menu, Plus, Trash2 } from "lucide-react";
+import { Edit, Eye, ImageIcon, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Banner } from "../../types/Banner";
 import { configMultiPart, config } from "../../common/configurations";
