@@ -38,7 +38,7 @@ const LearningCourseDetail: React.FC = () => {
 
       if (res.data?.[0]) {
         const courseData = res.data[0];
-        console.log(courseData)
+        console.log(courseData)//TODO: remove this console once finished.
         setCourse(courseData);
         setCurrentLessonId(courseData.progress.currentLesson);
       }
@@ -244,7 +244,7 @@ const LearningCourseDetail: React.FC = () => {
       </div>
   
       {/* ChatBar Component (Always at the bottom) */}
-      <ChatBar />
+      <ChatBar enrollment={course}/>
     </>
   );
   
