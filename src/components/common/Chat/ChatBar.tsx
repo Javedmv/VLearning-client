@@ -20,7 +20,7 @@ interface ChatBarProp {
   enrollment: any;
 }
 
-interface Message {
+export interface Message {
   _id?: string;
   content?: string;
   sender: string;
@@ -68,7 +68,7 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
   const instructorId = enrollment?.courseId?.instructorId;
   const instructorName = enrollment?.courseId?.instructor?.firstName + " " + enrollment?.courseId?.instructor?.lastName;
   
-  const { socket, onlineUsers, messages, sendMessage } = useSocketContext();
+  const { socket, onlineUsers, messages } = useSocketContext();
   // Fetch existing chat messages when chat is opened
   useEffect(() => {
     if (isOpen) {
@@ -108,14 +108,13 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
           if (messagesResponse.data.some((msg: Message) => 
               msg.sender !== user._id && (!msg.recieverSeen || !msg.recieverSeen.includes(user._id))
           )) {
-            console.log(chatResponse.data._id,"not seen")
             markMessagesAsSeen(chatResponse.data._id);
           }
         }
       }
     } catch (error:any) {
       console.error("Error fetching group chat:",error);
-      toast.error(`${error.response.data.message}`);
+      toast.error(`${error.response.data.message}` || "something went wrong");
     } finally {
       setIsLoading(false);
     }
@@ -140,66 +139,84 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
 
   const toggleChat = () => setIsOpen(!isOpen);
 
+  // Listen for socket messages
+  useEffect(() => {
+    if (socket && chatData?._id) {
+      // Join the chat room
+      socket.emit("join", { chatId: chatData._id, userId: user._id });
+      
+      // Listen for new messages
+      const handleNewMessage = (message: Message) => {
+        if (message.chatId === chatData._id) {
+          setChatMessages(prev => {
+            // Avoid duplicate messages
+            if (prev.some(m => m._id === message._id)) {
+              return prev;
+            }
+            return [...prev, message];
+          });
+        }
+      };
+      
+      socket.on("message", handleNewMessage);
+      
+      return () => {
+        socket.off("message", handleNewMessage);
+      };
+    }
+  }, [socket, chatData?._id, user._id]);
+
   const handleSendMessage = async () => {
-    if (input.trim()) {
-      // try {
-        // If we don't have a chat yet, create a new group chat
-      //   if (!chatData) {
-      //     const newChatResponse = await commonRequest(
-      //       'POST',
-      //       `${URL}/chat/create-group`,
-      //       {
-      //         groupName: `${courseName} - Group Chat`,
-      //         courseId: courseId,
-      //         instructorId: instructorId,
-      //         // The backend will add all course enrollments to users
-      //       },
-      //       config
-      //     );
-          
-      //     if (newChatResponse.data && newChatResponse.data.chat) {
-      //       setChatData(newChatResponse.data.chat);
-      //       setParticipantsCount(newChatResponse.data.chat.users?.length || 0);
-      //     }
-      //   }
+    if (input.trim() && socket && chatData?._id) {
+      try {
+        const messageData = {
+          content: input,
+          chatId: chatData._id,
+          sender: user?._id,
+          senderName: `${user?.username}`,
+          contentType: ContentType.TEXT,
+          recieverSeen: [user?._id],
+          type: "message"
+        };
         
-      //   // Send the message using the chat ID
-      //   const response = await commonRequest(
-      //     'POST',
-      //     `${URL}/chat/message`,
-      //     {
-      //       content: input,
-      //       chatId: chatData?._id || "",
-      //       sender: user._id,
-      //       senderName: `${user.firstName} ${user.lastName}`,
-      //       contentType: ContentType.TEXT,
-      //       recieverSeen: false
-      //     },
-      //     config
-      //   );
+        // Send message via socket first for immediate feedback
+        socket.emit("sendMessage", messageData);
         
-      //   if (response.data && response.data.message) {
-      //     // Update local messages state with the new message
-      //     setChatMessages(prevMessages => [...prevMessages, response.data.message]);
-          
-      //     // Update socket if needed
-      //     if (socket) {
-      //       sendMessage({
-      //         text: input,
-      //         sender: user._id,
-      //         senderName: `${user.firstName} ${user.lastName}`,
-      //         chatId: chatData?._id,
-      //         courseId: courseId,
-      //         contentType: ContentType.TEXT,
-      //         isGroupMessage: true
-      //       });
-      //     }
-      //   }
+        // Optimistically add message to UI
+        const tempMessage = {
+          ...messageData,
+          createdAt: new Date().toISOString()
+        };
+        setChatMessages(prev => [...prev, {
+          ...tempMessage,
+          recieverSeen: [user?._id] as [string],
+          type: "message" as "message"
+        }]);
         
-      //   setInput("");
-      // } catch (error) {
-      //   console.error("Error sending message:", error);
-      // }
+        // Then save to database via API
+        const response = await commonRequest(
+          'POST',
+          `${URL}/chat/message`,
+          messageData,
+          config
+        );
+        
+        // Update with server response if needed
+        if (response.data && response.data._id) {
+          setChatMessages(prev => 
+            prev.map(msg => 
+              (msg.content === tempMessage.content && 
+               msg.sender === tempMessage.sender && 
+               msg.createdAt === tempMessage.createdAt) ? response.data : msg
+            )
+          );
+        }
+        
+        setInput("");
+      } catch (error:any) {
+        console.error("Error sending message:", error);
+        toast.error(error.response?.data?.message || "Something went wrong");
+      }
     }
   };
   
@@ -207,6 +224,13 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages, messages]);
+
+  // Add this useEffect for scrolling
+  useEffect(() => {
+    if (messagesEndRef.current && isOpen) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isOpen]); // Scroll when messages change or chat opens
 
   // Get content icon based on content type
   const getContentIcon = (contentType?: ContentType) => {
@@ -251,8 +275,18 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
   //   return timeA - timeB;
   // });
 
+  // When displaying messages, make sure they're sorted correctly
+  // And scroll to the bottom of the container when new messages arrive
+
+  useEffect(() => {
+    // Scroll to bottom of chat container when messages change
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   return (
-    <div className="fixed bottom-4 right-4">
+    <div className="fixed bottom-4 right-4 z-40"> {/* Add z-40 to ensure proper stacking */}
       {/* Chat Box */}
       {isOpen && (
         <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-gray-400/80 shadow-lg rounded-lg p-4 border border-gray-300 transition-all duration-300">
@@ -273,13 +307,12 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
           </div>
 
           {/* Messages */}
-          <div className="h-80 overflow-y-auto p-2 bg-gray-50/90 rounded">
+          <div className="h-80 overflow-y-auto p-2 bg-gray-50/90 rounded scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
             {isLoading ? (
               <div className="flex justify-center items-center h-full">
                 <p>Loading messages...</p>
               </div>
             ) : chatMessages.length > 0 ? (
-              /* Temporarily using chatMessages instead of displayMessages */
               chatMessages.map((msg, index) => (
                 <div 
                   key={index} 
@@ -288,46 +321,51 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                       ? "flex justify-center" 
                       : msg.sender === user._id 
                         ? "flex justify-end" 
-                        : ""
+                        : "flex justify-start"
                   }`}
                 >
-                  <div className={`${msg.type === "newUser" ? "max-w-full" : "max-w-xs"}`}>
+                  <div className={`${
+                    msg.type === "newUser" 
+                      ? "max-w-full" 
+                      : "max-w-[75%] mt-1"
+                  }`}>
                     {/* Show sender name for messages not from current user and not new user notifications */}
                     {msg.sender !== user._id && msg.type !== "newUser" && (
                       <div className="flex items-center mb-1">
-                        <User className="w-4 h-4 text-gray-500 mr-1" />
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-medium bg-purple-500 mr-1">
+                          {getSenderName(msg).charAt(0).toUpperCase()}
+                        </div>
                         <span className="text-xs font-medium text-gray-700">{getSenderName(msg)}</span>
                       </div>
                     )}
                     
                     <div 
-                      className={`p-2 text-sm rounded ${
+                      className={`p-2 text-sm rounded-lg ${
                         msg.type === "newUser" 
-                          ? "bg-gray-400 text-center rounded-full" 
+                          ? "bg-gray-200 text-center px-4 py-1 rounded-full text-sm" 
                           : msg.sender === user._id 
-                            ? "bg-purple-300 text-right" 
-                            : "bg-gray-300 text-left"
+                            ? "bg-purple-500 text-white"
+                            : "bg-gray-400"
                       }`}
                     >
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center">
                         {getContentIcon(msg.contentType as ContentType)}
-                        <p>{msg.content}</p>
+                        <p className={msg.sender === user._id ? "text-white" : "text-gray-800"}>
+                          {msg.content}
+                        </p>
                       </div>
                       
-                      {/* Only show time for regular messages, not for system messages */}
                       {msg.type !== "newUser" && (
-                        <div className="flex justify-between items-center mt-1 text-xs text-gray-600">
-                          <span>
-                            {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                          {msg.sender === user._id && (
-                            <span className="ml-2">
+                        <div className={`flex ${msg.sender === user._id ? "justify-end" : "justify-start"} items-center mt-1`}>
+                          <span className="text-xs opacity-75">
                             {msg.createdAt
-                              ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+                              ? new Date(msg.createdAt).toLocaleTimeString([], { 
+                                  hour: "2-digit", 
+                                  minute: "2-digit", 
+                                  hour12: true 
+                                })
                               : "N/A"}
                           </span>
-                          
-                          )}
                         </div>
                       )}
                     </div>
@@ -339,7 +377,7 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                 <p>No messages yet. Start a conversation!</p>
               </div>
             )}
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} className="pt-2" /> {/* Add padding-top for smoother scroll */}
           </div>
 
           {/* Input Field */}

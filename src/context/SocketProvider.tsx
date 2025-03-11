@@ -2,28 +2,25 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useDispatch, useSelector } from "react-redux";
 import io, { Socket } from "socket.io-client";
 import { AppDispatch, RootState } from "../redux/store";
+import { Message } from "../components/common/Chat/ChatBar";
 
 const SOCKET_URL = import.meta.env.VITE_REACT_APP_CHAT_URL;
-
-interface Message {
-  text: string;
-  sender: string;
-  receiver: string;
-  time: string;
-  enrollmentId?: string;
-}
 
 interface SocketContextType {
   socket: Socket | null;
   messages: Message[];
   onlineUsers: string[];
-  sendMessage: (message: Omit<Message, 'time'>) => void;
+  joinChatRoom: (chatId: string) => void;
+  leaveChatRoom: (chatId: string) => void;
+  sendMessage: (message: Partial<Message>) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   messages: [],
   onlineUsers: [],
+  joinChatRoom: () => {},
+  leaveChatRoom: () => {},
   sendMessage: () => {}
 });
 
@@ -95,19 +92,30 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
   }, [user]);
 
-  // Send message method
-  const sendMessage = (messageData: Omit<Message, 'time'>) => {
-    if (socket) {
-      const messageWithTime = {
-        ...messageData,
-        time: new Date().toISOString()
+  // Function to join a chat room
+  const joinChatRoom = (chatId: string) => {
+    if (socket && user?._id && chatId) {
+      socket.emit("join", { chatId, userId: user._id });
+    }
+  };
+
+  // Function to leave a chat room
+  const leaveChatRoom = (chatId: string) => {
+    if (socket && user?._id && chatId) {
+      socket.emit("leave", { chatId, userId: user._id });
+    }
+  };
+
+  // Function to send a message
+  const sendMessage = (message: Partial<Message>) => {
+    if (socket && user?._id && message.chatId) {
+      const fullMessage = {
+        ...message,
+        sender: user._id,
+        type: message.type || "message",
+        contentType: message.contentType || "text"
       };
-      
-      // Emit message to server
-      socket.emit('sendMessage', messageWithTime);
-      
-      // Optimistically add message to local state
-      setMessages(prevMessages => [...prevMessages, messageWithTime]);
+      socket.emit("sendMessage", fullMessage);
     }
   };
 
@@ -115,6 +123,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socket,
     messages,
     onlineUsers,
+    joinChatRoom,
+    leaveChatRoom,
     sendMessage
   };
 
