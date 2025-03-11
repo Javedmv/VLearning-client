@@ -17,7 +17,13 @@ enum ContentType {
 interface Message {
   _id?: string;
   content?: string;
-  sender: string;
+  sender: string | {
+    _id: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
+    profile?: any;
+  };
   chatId?: string;
   contentType?: ContentType;
   recieverSeen?: string[];
@@ -161,6 +167,47 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
+  const getSenderName = (message: Message): string => {
+    if (typeof message.sender === 'object') {
+      if (message.sender?._id === user._id) {
+        return 'You';
+      }
+      return message.sender?.username || 'Unknown User';
+    }
+    if (typeof message.sender === 'string') {
+      return message.sender === user._id ? 'You' : 'Unknown User';
+    }
+    return 'Unknown User';
+  };
+
+  const getSenderInitials = (message: Message): string => {
+    if (typeof message.sender === 'object' && message.sender?.username) {
+      return message.sender.username[0].toUpperCase();
+    }
+    // Fallback to previous logic
+    const name = getSenderName(message);
+    return name[0].toUpperCase();
+  };
+
+  const formatMessageDate = (dateString: string | Date) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+    }
+  };
+
   if (!chat?._id) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-200 to-indigo-50">
@@ -199,7 +246,17 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
             </div>
           ) : (
             messages.map((message, index) => {
-              const isInstructor = message.sender === instructorId;
+              const isOwnMessage = typeof message.sender === 'string' 
+                ? message.sender === user._id
+                : message.sender._id === user._id;
+              
+              // Check if this message is from the same sender as the previous one
+              const isSameSender = index > 0 && (
+                typeof message.sender === 'string' 
+                  ? message.sender === messages[index - 1].sender
+                  : message.sender._id === (messages[index - 1].sender as any)._id
+              );
+              
               const timestamp = message.createdAt 
                 ? new Date(message.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -209,44 +266,63 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                     hour: "2-digit",
                     minute: "2-digit",
                   });
-                
-                return (
-                  <div key={message._id || index} className="w-full flex flex-col items-center">
+
+              const showDateHeader = index === 0 || (
+                message.createdAt && messages[index - 1].createdAt &&
+                formatMessageDate(message.createdAt as string | Date) !== formatMessageDate(messages[index - 1].createdAt as string | Date)
+              );
+              
+              return (
+                <React.Fragment key={message._id || index}>
+                  {showDateHeader && message.createdAt && (
+                    <div className="flex justify-center my-4">
+                      <div className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                        {formatMessageDate(message.createdAt)}
+                      </div>
+                    </div>
+                  )}
+                  <div className="w-full flex flex-col items-center">
                     {message.type === "newUser" ? (
-                      // Display info message centered
                       <div className="bg-gray-200 text-gray-600 text-sm italic px-4 py-2 rounded-lg shadow-sm">
                         {message.content}
                       </div>
                     ) : (
-                      // Regular message (left for students, right for instructor)
-                      <div
-                        className={`flex ${isInstructor ? "justify-end" : "justify-start"} w-full group`}
-                      >
+                      <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} w-full group mb-1`}>
+                        {!isOwnMessage && !isSameSender && (
+                          <div className="h-6 w-6 rounded-full bg-indigo-100 flex-shrink-0 mr-2 flex items-center justify-center overflow-hidden">
+                            <span className="text-xs font-medium text-indigo-600">
+                              {getSenderInitials(message)}
+                            </span>
+                          </div>
+                        )}
+                        {!isOwnMessage && isSameSender && <div className="w-6 mr-2" />} {/* Spacer for alignment */}
                         <div
-                          className={`max-w-[70%] rounded-2xl p-2 shadow-md transition-shadow group-hover:shadow-lg ${
-                            isInstructor
+                          className={`max-w-[70%] rounded-xl py-2 px-3 shadow-sm transition-shadow group-hover:shadow-md ${
+                            isOwnMessage
                               ? "bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 text-white"
                               : "bg-white text-gray-900"
                           }`}
                         >
-                          {!isInstructor && (
-                            <p className="text-xs font-medium mb-1 text-gray-500">
-                              {message.sender}
+                          {!isSameSender && (
+                            <p className={`text-[11px] font-medium ${isOwnMessage ? "text-gray-300" : "text-gray-500"} ${isOwnMessage ? "text-right" : "text-left"}`}>
+                              {isOwnMessage ? "You" : getSenderName(message)}
                             </p>
                           )}
-                          <p className="text-[15px] leading-relaxed">{message.content}</p>
-                          <p
-                            className={`text-xs mt-2 ${
-                              isInstructor ? "text-blue-100" : "text-gray-500"
-                            }`}
-                          >
-                            {timestamp}
-                          </p>
+                          <p className="text-sm leading-snug">{message.content}</p>
+                          <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+                            <p className={`text-[10px] ${isOwnMessage ? "text-blue-100" : "text-gray-500"}`}>
+                              {timestamp}
+                            </p>
+                            {isOwnMessage && (
+                              <span className="ml-1 text-[10px] text-blue-100">✓</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
-                );              
+                </React.Fragment>
+              );              
             })
           )}
         </div>

@@ -285,6 +285,26 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
     }
   }, [messages]);
 
+  // Add this helper function at the component level
+  const formatMessageDate = (dateString: string | Date) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+    }
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-40"> {/* Add z-40 to ensure proper stacking */}
       {/* Chat Box */}
@@ -313,65 +333,91 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                 <p>Loading messages...</p>
               </div>
             ) : chatMessages.length > 0 ? (
-              chatMessages.map((msg, index) => (
-                <div 
-                  key={index} 
-                  className={`my-2 ${
-                    msg.type === "newUser" 
-                      ? "flex justify-center" 
-                      : msg.sender === user._id 
-                        ? "flex justify-end" 
-                        : "flex justify-start"
-                  }`}
-                >
-                  <div className={`${
-                    msg.type === "newUser" 
-                      ? "max-w-full" 
-                      : "max-w-[75%] mt-1"
-                  }`}>
-                    {/* Show sender name for messages not from current user and not new user notifications */}
-                    {msg.sender !== user._id && msg.type !== "newUser" && (
-                      <div className="flex items-center mb-1">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-medium bg-purple-500 mr-1">
-                          {getSenderName(msg).charAt(0).toUpperCase()}
+              chatMessages.map((msg, index) => {
+                const isOwnMessage = msg.sender === user._id;
+                
+                // Check if this message is from the same sender as the previous one
+                const isSameSender = index > 0 && chatMessages[index - 1].sender === msg.sender;
+                
+                const showDateHeader = index === 0 || (
+                  msg.createdAt && chatMessages[index - 1].createdAt &&
+                  formatMessageDate(msg.createdAt as string | Date) !== formatMessageDate(chatMessages[index - 1].createdAt as string | Date)
+                );
+
+                return (
+                  <React.Fragment key={index}>
+                    {showDateHeader && msg.createdAt && (
+                      <div className="flex justify-center my-2">
+                        <div className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                          {formatMessageDate(msg.createdAt)}
                         </div>
-                        <span className="text-xs font-medium text-gray-700">{getSenderName(msg)}</span>
                       </div>
                     )}
-                    
                     <div 
-                      className={`p-2 text-sm rounded-lg ${
+                      className={`my-2 ${
                         msg.type === "newUser" 
-                          ? "bg-gray-200 text-center px-4 py-1 rounded-full text-sm" 
-                          : msg.sender === user._id 
-                            ? "bg-purple-500 text-white"
-                            : "bg-gray-400"
+                          ? "flex justify-center" 
+                          : isOwnMessage 
+                            ? "flex justify-end" 
+                            : "flex justify-start"
                       }`}
                     >
-                      <div className="flex items-center">
-                        {getContentIcon(msg.contentType as ContentType)}
-                        <p className={msg.sender === user._id ? "text-white" : "text-gray-800"}>
-                          {msg.content}
-                        </p>
-                      </div>
-                      
-                      {msg.type !== "newUser" && (
-                        <div className={`flex ${msg.sender === user._id ? "justify-end" : "justify-start"} items-center mt-1`}>
-                          <span className="text-xs opacity-75">
-                            {msg.createdAt
-                              ? new Date(msg.createdAt).toLocaleTimeString([], { 
-                                  hour: "2-digit", 
-                                  minute: "2-digit", 
-                                  hour12: true 
-                                })
-                              : "N/A"}
-                          </span>
+                      <div className={`${
+                        msg.type === "newUser" 
+                          ? "max-w-full" 
+                        : "max-w-[75%] mt-1"
+                      }`}>
+                        {msg.type !== "newUser" && (
+                          <>
+                            {!isOwnMessage && !isSameSender && (
+                              <div className="flex items-center mb-1">
+                                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-medium bg-purple-500 mr-1">
+                                  {getSenderName(msg).charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-[11px] font-medium text-gray-700">{getSenderName(msg)}</span>
+                              </div>
+                            )}
+                            {!isOwnMessage && isSameSender && <div className="w-6 mr-2" />}
+                          </>
+                        )}
+                        
+                        <div 
+                          className={`p-2 rounded-xl py-2 px-3 shadow-sm transition-shadow group-hover:shadow-md ${
+                            msg.type === "newUser" 
+                              ? "bg-gray-200 text-center px-4 py-1 rounded-full text-sm" 
+                              : isOwnMessage 
+                                ? "bg-purple-500 text-white"
+                                : "bg-gray-400"
+                          }`}
+                        >
+                          {!isSameSender && isOwnMessage && (
+                            <p className="text-[11px] font-medium text-gray-300 text-right">
+                              You
+                            </p>
+                          )}
+                          <p className="text-sm leading-snug">
+                            {msg.content}
+                          </p>
+                          <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+                            <span className={`text-[10px] ${isOwnMessage ? "text-blue-100" : "text-gray-500"}`}>
+                              {msg.createdAt
+                                ? new Date(msg.createdAt).toLocaleTimeString([], { 
+                                    hour: "2-digit", 
+                                    minute: "2-digit", 
+                                    hour12: true 
+                                  })
+                                : "N/A"}
+                            </span>
+                            {isOwnMessage && (
+                              <span className="ml-1 text-[10px] text-blue-100">✓</span>
+                            )}
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))
+                  </React.Fragment>
+                );
+              })
             ) : (
               <div className="flex justify-center items-center h-full text-gray-500">
                 <p>No messages yet. Start a conversation!</p>
