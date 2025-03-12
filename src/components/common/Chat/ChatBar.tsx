@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, User, Image, FileText, Video, Mic, Users } from "lucide-react";
+import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users } from "lucide-react";
 import { useSocketContext } from "../../../context/SocketProvider";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
@@ -20,14 +20,21 @@ interface ChatBarProp {
   enrollment: any;
 }
 
-export interface Message {
+interface Message {
   _id?: string;
   content?: string;
-  sender: string;
+  sender: string | {
+    _id?: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    profile?: any;
+  };
+  senderName?: string;
   chatId?: string;
   contentType?: ContentType;
-  recieverSeen?: [string];
-  type: "newUser" | "message"
+  recieverSeen?: string[];
+  type: "newUser" | "message";
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -91,7 +98,6 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
       
       if (chatResponse.success && chatResponse.data) {
         setChatData(chatResponse.data);
-        {{console.log(chatResponse.data)}}
         setParticipantsCount(chatResponse.data.users?.length || 0);
         
         // Fetch messages for this chat
@@ -178,7 +184,7 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
           recieverSeen: [user?._id],
           type: "message"
         };
-        
+                
         // Send message via socket first for immediate feedback
         socket.emit("sendMessage", messageData);
         
@@ -197,7 +203,14 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
         const response = await commonRequest(
           'POST',
           `${URL}/chat/message`,
-          messageData,
+          {
+            content: messageData.content,
+            chatId: messageData.chatId,
+            sender: messageData.sender,
+            contentType: messageData.contentType,
+            recieverSeen: messageData.recieverSeen,
+            type: messageData.type
+          },
           config
         );
         
@@ -250,33 +263,17 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
 
   // Get sender name from message or chatData members
   const getSenderName = (msg: Message) => {
-    // if (msg.senderName) return msg.senderName;
-    
-    if (msg.sender === user._id) return `${user.firstName} ${user.lastName}`;
-    
-    if (msg.sender === instructorId) return instructorName;
-    
-    // Try to find in chat members
-    const member = chatData?.members?.find(m => m._id === msg.sender);
-    if (member) return `${member.firstName} ${member.lastName}`;
-    
+    const senderId = typeof msg.sender === 'string' ? msg.sender : msg.sender._id;
+    if (msg.senderName) return msg.senderName;
+    if (senderId === user._id) return user.username || "You";
+    if (senderId === instructorId) {
+      const instructorUsername = enrollment?.courseId?.instructor?.username;
+      return instructorUsername || "Instructor";
+    }
+    const member = chatData?.members?.find(m => m._id === senderId);
+    if (member) return `${member.firstName} ${member.lastName}` || `User-${member._id?.substring(0, 4)}`;
     return "Unknown User";
   };
-
-  // Combine local chat history with socket messages
-  // This will be uncommented when your backend is ready
-  // const displayMessages = [...chatMessages, ...messages.filter(msg => 
-  //   msg.chatId === chatData?._id && // Only messages for this chat
-  //   !chatMessages.some(cm => (cm._id === msg._id) || 
-  //   ((cm.content === msg.text || cm.text === msg.text) && cm.sender === msg.sender))
-  // )].sort((a, b) => {
-  //   const timeA = new Date(a.time || a.createdAt || Date.now()).getTime();
-  //   const timeB = new Date(b.time || b.createdAt || Date.now()).getTime();
-  //   return timeA - timeB;
-  // });
-
-  // When displaying messages, make sure they're sorted correctly
-  // And scroll to the bottom of the container when new messages arrive
 
   useEffect(() => {
     // Scroll to bottom of chat container when messages change
@@ -305,8 +302,14 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
     }
   };
 
+  // Helper function to determine if a message is from the current user
+  const isCurrentUserMessage = (msg: Message): boolean => {
+    const senderId = typeof msg.sender === 'string' ? msg.sender : msg.sender._id;
+    return senderId === user._id;
+  };
+
   return (
-    <div className="fixed bottom-4 right-4 z-40"> {/* Add z-40 to ensure proper stacking */}
+    <div className="fixed bottom-4 right-4 z-40">
       {/* Chat Box */}
       {isOpen && (
         <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-gray-400/80 shadow-lg rounded-lg p-4 border border-gray-300 transition-all duration-300">
@@ -334,10 +337,16 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
               </div>
             ) : chatMessages.length > 0 ? (
               chatMessages.map((msg, index) => {
-                const isOwnMessage = msg.sender === user._id;
+                const isOwnMessage = isCurrentUserMessage(msg);
                 
                 // Check if this message is from the same sender as the previous one
-                const isSameSender = index > 0 && chatMessages[index - 1].sender === msg.sender;
+                const isSameSender = index > 0 && (
+                  typeof msg.sender === 'string' && typeof chatMessages[index - 1].sender === 'string'
+                    ? msg.sender === chatMessages[index - 1].sender
+                    : typeof msg.sender !== 'string' && typeof chatMessages[index - 1].sender !== 'string'
+                      ? (msg.sender as {_id?: string})._id === (chatMessages[index - 1].sender as {_id?: string})._id
+                      : false
+                );
                 
                 const showDateHeader = index === 0 || (
                   msg.createdAt && chatMessages[index - 1].createdAt &&
@@ -387,7 +396,11 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                               ? "bg-gray-200 text-center px-4 py-1 rounded-full text-sm" 
                               : isOwnMessage 
                                 ? "bg-purple-500 text-white"
-                                : "bg-gray-400"
+                                : typeof msg.sender === 'string' && msg.sender === instructorId
+                                  ? "bg-green-500 text-white"
+                                  : typeof msg.sender !== 'string' && msg.sender._id === instructorId
+                                    ? "bg-green-500 text-white"
+                                    : "bg-gray-400"
                           }`}
                         >
                           {!isSameSender && isOwnMessage && (

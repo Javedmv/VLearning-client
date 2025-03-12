@@ -18,12 +18,13 @@ interface Message {
   _id?: string;
   content?: string;
   sender: string | {
-    _id: string;
-    username: string;
+    _id?: string;
+    username?: string;
     firstName?: string;
     lastName?: string;
     profile?: any;
   };
+  senderName?: string;
   chatId?: string;
   contentType?: ContentType;
   recieverSeen?: string[];
@@ -74,6 +75,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       
       // Listen for new messages
       socket.on("message", (newMessage: Message) => {
+        console.log("this is the new message", newMessage);
         setMessages(prevMessages => [...prevMessages, newMessage]);
         setTimeout(scrollToBottom, 100);
       });
@@ -131,6 +133,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       content: newMessage,
       sender: instructorId,
       chatId: chat._id,
+      senderName: `${user?.username}`,
       type: "message",
       contentType: ContentType.TEXT,
       createdAt: new Date().toISOString(), // Add timestamp when creating message
@@ -149,7 +152,14 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       await commonRequest(
         "POST", 
         `${URL}/chat/message`,
-        messageData,
+        {
+          content: messageData.content,
+          sender: messageData.sender,
+          chatId: messageData.chatId,
+          type: messageData.type,
+          contentType: messageData.contentType,
+          createdAt: messageData.createdAt
+        },
         config
       );
 
@@ -168,6 +178,14 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   };
 
   const getSenderName = (message: Message): string => {
+    // First check if senderName is available
+    if (message.senderName) {
+      return message.sender === user._id || 
+             (typeof message.sender === 'object' && message.sender?._id === user._id) 
+             ? 'You' : message.senderName;
+    }
+    
+    // Fall back to previous logic
     if (typeof message.sender === 'object') {
       if (message.sender?._id === user._id) {
         return 'You';

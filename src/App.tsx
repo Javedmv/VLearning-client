@@ -39,6 +39,8 @@ const BannerComponent = React.lazy(() => import('./pages/admin/Banner'));
 const LearningCourseDetail = React.lazy(() => import('./pages/user/LearningCourseDetail'));
 import PaymentHistory from './pages/user/payment/paymentHistory';
 import ChatPage from './pages/instructor/ChatPage';
+const AboutUs = React.lazy(() => import('./pages/common/AboutUs'));
+const ContactUs = React.lazy(() => import('./pages/common/ContactUs'));
 
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: any }) => {
@@ -221,6 +223,22 @@ const router = (user: any) =>
         element: user && (
           <Suspense fallback={<div>Loading...</div>}>
             <PaymentHistory />
+          </Suspense>
+        )
+      },
+      {
+        path: "contact-us",
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <ContactUs backUrl="/" />
+          </Suspense>
+        )
+      },
+      {
+        path: "about-us",
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <AboutUs backUrl="/" />
           </Suspense>
         )
       }

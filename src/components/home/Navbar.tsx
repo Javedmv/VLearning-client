@@ -70,22 +70,24 @@ const Navbar: React.FC<NavbarProps> = ({ User }) => {
               Courses
             </Link>
 
-            <a
-              href="#"
+            <Link
+              to="/contact-us"
+              onClick={() => setSelectedLink("/contact-us")}
               className={`nav-link rounded-full py-1 px-4 transition-all ${
-                selectedLink === "#" ? "bg-fuchsia-800 text-white" : "hover:bg-fuchsia-900 hover:text-white"
+                selectedLink === "/contact-us" ? "bg-fuchsia-800 text-white" : "hover:bg-fuchsia-900 hover:text-white"
               }`}
             >
               Contact Us
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/about-us"
+              onClick={() => setSelectedLink("/about-us")}
               className={`nav-link rounded-full py-1 px-4 transition-all ${
-                selectedLink === "#" ? "bg-fuchsia-800 text-white" : "hover:bg-fuchsia-900 hover:text-white"
+                selectedLink === "/about-us" ? "bg-fuchsia-800 text-white" : "hover:bg-fuchsia-900 hover:text-white"
               }`}
             >
               About Us
-            </a>
+            </Link>
 
             
 

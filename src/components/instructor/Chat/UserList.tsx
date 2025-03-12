@@ -27,7 +27,7 @@ export function UserList({ users, selectedUserId, onSelectUser }: UserListProps)
 
   return (
     <div className="w-96 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-700">
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-fuchsia-600 to-fuchsia-700">
         <div className="flex items-center space-x-3 mb-6">
           <Users className="w-7 h-7 text-white" />
           <h2 className="text-2xl font-bold text-white">Course Chats</h2>
@@ -50,14 +50,14 @@ export function UserList({ users, selectedUserId, onSelectUser }: UserListProps)
               key={chat._id}
               className={`p-4 cursor-pointer transition-all duration-200 hover:bg-blue-50 border-l-4 ${
                 selectedUserId === chat._id
-                  ? "border-l-indigo-600 bg-blue-50"
+                  ? "border-l-fuchsia-600 bg-blue-50"
                   : "border-l-transparent"
               }`}
               onClick={() => onSelectUser(chat._id)}
             >
               <div className="flex items-center space-x-4">
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-r from-fuchsia-500 to-fuchsia-600 flex items-center justify-center text-white font-bold text-xl">
                     {chat.groupName.charAt(0).toUpperCase()}
                   </div>
                 </div>
