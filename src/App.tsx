@@ -230,7 +230,7 @@ const router = (user: any) =>
         path: "contact-us",
         element: (
           <Suspense fallback={<div>Loading...</div>}>
-            <ContactUs backUrl="/" />
+            <ContactUs />
           </Suspense>
         )
       },
@@ -238,7 +238,7 @@ const router = (user: any) =>
         path: "about-us",
         element: (
           <Suspense fallback={<div>Loading...</div>}>
-            <AboutUs backUrl="/" />
+            <AboutUs />
           </Suspense>
         )
       }

@@ -7,7 +7,7 @@ const Sidebar: React.FC = () => {
     <aside className="bg-fuchsia-900 text-pink-200 w-64 min-h-screen flex flex-col">
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-        <li>
+        {/* <li>
             <Link
               to="/"
               className="flex items-center space-x-3 p-3 rounded-lg hover:bg-fuchsia-800 transition-colors"
@@ -15,8 +15,8 @@ const Sidebar: React.FC = () => {
               <ArrowLeft />
               <span>Back</span>
             </Link>
-          </li>
-          <hr className="border-t-4 border border-gray-700 my-1"></hr>
+          </li> */}
+          {/* <hr className="border-t-4 border border-gray-700 my-1"></hr> */}
           <li>
             <Link
               to="/instructor/"

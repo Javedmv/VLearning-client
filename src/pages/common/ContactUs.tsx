@@ -3,6 +3,9 @@ import { Mail, Phone, MapPin, MessageCircle, HelpCircle, Clock } from "lucide-re
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { useNavigate } from 'react-router-dom';
+import { RootState } from "../../redux/store";
+import { useSelector } from "react-redux";
+import Navbar from "../../components/home/Navbar";
 
 // Add this interface above the component
 interface ContactFormData {
@@ -12,14 +15,12 @@ interface ContactFormData {
   category?: string;
 }
 
-interface ContactUsProps {
-  backUrl: string;
-}
 
-const ContactUs: React.FC<ContactUsProps> = ({ backUrl }) => {
+
+const ContactUs: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
-  
+  const {user } = useSelector((state: RootState) => state.user);
   const { 
     register, 
     handleSubmit, 
@@ -75,16 +76,9 @@ const ContactUs: React.FC<ContactUsProps> = ({ backUrl }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Add this button near the top of your component */}
-      <button 
-        onClick={() => navigate(backUrl)}
-        className="absolute top-4 left-4 text-white hover:text-gray-200"
-      >
-        ← Back
-      </button>
-
+    <div className="min-screen bg-gray-50">
       {/* Header */}
+      <Navbar User={user}/>
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-12 px-4">
         <div className="container mx-auto max-w-6xl">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">Contact Us</h1>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useDispatch, useSelector } from "react-redux";
 import io, { Socket } from "socket.io-client";
 import { AppDispatch, RootState } from "../redux/store";
-import { Message } from "../components/common/Chat/ChatBar";
+import { Message } from "../types/Message";
 
 const SOCKET_URL = import.meta.env.VITE_REACT_APP_CHAT_URL;
 

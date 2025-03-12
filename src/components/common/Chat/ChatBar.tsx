@@ -76,13 +76,15 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
   const instructorName = enrollment?.courseId?.instructor?.firstName + " " + enrollment?.courseId?.instructor?.lastName;
   
   const { socket, onlineUsers, messages } = useSocketContext();
+  // Add message sending state
+  const [isSending, setIsSending] = useState(false);
+
   // Fetch existing chat messages when chat is opened
   useEffect(() => {
     if (isOpen) {
       fetchExistingChat();
     }
   }, [isOpen]);
-
   // Fetch existing group chat for the course
   const fetchExistingChat = async () => {
     try {
@@ -145,7 +147,7 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
 
   const toggleChat = () => setIsOpen(!isOpen);
 
-  // Listen for socket messages
+  // Improve socket message handling
   useEffect(() => {
     if (socket && chatData?._id) {
       // Join the chat room
@@ -153,82 +155,74 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
       
       // Listen for new messages
       const handleNewMessage = (message: Message) => {
-        if (message.chatId === chatData._id) {
-          setChatMessages(prev => {
-            // Avoid duplicate messages
-            if (prev.some(m => m._id === message._id)) {
-              return prev;
-            }
-            return [...prev, message];
-          });
-        }
+        console.log("Received message:", message);
+        setChatMessages(prev => {
+          // Check if message already exists
+          const exists = prev.some(m => 
+            m._id === message._id || 
+            (m.content === message.content && 
+             m.sender === message.sender && 
+             m.createdAt === message.createdAt)
+          );
+          if (exists) return prev;
+          return [...prev, message];
+        });
+      };
+      
+      // Listen for message sent confirmation
+      const handleMessageSent = (data: { success: boolean, messageId: string }) => {
+        console.log("Message sent confirmation:", data);
+        setIsSending(false);
+      };
+
+      // Listen for message errors
+      const handleMessageError = (error: any) => {
+        console.error("Message error:", error);
+        setIsSending(false);
+        toast.error("Failed to send message. Please try again.");
       };
       
       socket.on("message", handleNewMessage);
+      socket.on("messageSent", handleMessageSent);
+      socket.on("messageError", handleMessageError);
       
       return () => {
         socket.off("message", handleNewMessage);
+        socket.off("messageSent", handleMessageSent);
+        socket.off("messageError", handleMessageError);
       };
     }
   }, [socket, chatData?._id, user._id]);
 
   const handleSendMessage = async () => {
-    if (input.trim() && socket && chatData?._id) {
+    if (input.trim() && socket && chatData?._id && !isSending) {
       try {
+        setIsSending(true);
+        
         const messageData = {
           content: input,
           chatId: chatData._id,
           sender: user?._id,
-          senderName: `${user?.username}`,
+          senderName: user?.username,
           contentType: ContentType.TEXT,
           recieverSeen: [user?._id],
-          type: "message"
-        };
-                
-        // Send message via socket first for immediate feedback
-        socket.emit("sendMessage", messageData);
-        
-        // Optimistically add message to UI
-        const tempMessage = {
-          ...messageData,
+          type: "message" as const,
           createdAt: new Date().toISOString()
         };
-        setChatMessages(prev => [...prev, {
-          ...tempMessage,
-          recieverSeen: [user?._id] as [string],
-          type: "message" as "message"
-        }]);
         
-        // Then save to database via API
-        const response = await commonRequest(
-          'POST',
-          `${URL}/chat/message`,
-          {
-            content: messageData.content,
-            chatId: messageData.chatId,
-            sender: messageData.sender,
-            contentType: messageData.contentType,
-            recieverSeen: messageData.recieverSeen,
-            type: messageData.type
-          },
-          config
-        );
+        // Send message via socket
+        socket.emit("sendMessage", messageData);
         
-        // Update with server response if needed
-        if (response.data && response.data._id) {
-          setChatMessages(prev => 
-            prev.map(msg => 
-              (msg.content === tempMessage.content && 
-               msg.sender === tempMessage.sender && 
-               msg.createdAt === tempMessage.createdAt) ? response.data : msg
-            )
-          );
-        }
-        
+        // Clear input immediately for better UX
         setInput("");
-      } catch (error:any) {
+        
+        // Optimistically add message to UI
+        // setChatMessages(prev => [...prev, messageData]);
+        
+      } catch (error: any) {
         console.error("Error sending message:", error);
-        toast.error(error.response?.data?.message || "Something went wrong");
+        setIsSending(false);
+        toast.error(error.response?.data?.message || "Failed to send message");
       }
     }
   };
@@ -263,13 +257,23 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
 
   // Get sender name from message or chatData members
   const getSenderName = (msg: Message) => {
-    const senderId = typeof msg.sender === 'string' ? msg.sender : msg.sender._id;
+    // For socket messages that have senderName
     if (msg.senderName) return msg.senderName;
+    
+    // For messages from backend that have sender object
+    if (typeof msg.sender !== 'string' && msg.sender.username) {
+      return msg.sender.username;
+    }
+
+    // For messages where sender is just an ID
+    const senderId = typeof msg.sender === 'string' ? msg.sender : msg.sender._id;
+    
     if (senderId === user._id) return user.username || "You";
     if (senderId === instructorId) {
       const instructorUsername = enrollment?.courseId?.instructor?.username;
       return instructorUsername || "Instructor";
     }
+    
     const member = chatData?.members?.find(m => m._id === senderId);
     if (member) return `${member.firstName} ${member.lastName}` || `User-${member._id?.substring(0, 4)}`;
     return "Unknown User";
@@ -393,7 +397,7 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                         <div 
                           className={`p-2 rounded-xl py-2 px-3 shadow-sm transition-shadow group-hover:shadow-md ${
                             msg.type === "newUser" 
-                              ? "bg-gray-200 text-center px-4 py-1 rounded-full text-sm" 
+                              ? "bg-gray-300 text-center px-2 py-1 rounded-full text-sm" 
                               : isOwnMessage 
                                 ? "bg-purple-500 text-white"
                                 : typeof msg.sender === 'string' && msg.sender === instructorId
@@ -403,7 +407,7 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                                     : "bg-gray-400"
                           }`}
                         >
-                          {!isSameSender && isOwnMessage && (
+                          {msg.type !== "newUser" && !isSameSender && isOwnMessage && (
                             <p className="text-[11px] font-medium text-gray-300 text-right">
                               You
                             </p>
@@ -411,20 +415,22 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                           <p className="text-sm leading-snug">
                             {msg.content}
                           </p>
-                          <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-                            <span className={`text-[10px] ${isOwnMessage ? "text-blue-100" : "text-gray-500"}`}>
-                              {msg.createdAt
-                                ? new Date(msg.createdAt).toLocaleTimeString([], { 
-                                    hour: "2-digit", 
-                                    minute: "2-digit", 
-                                    hour12: true 
-                                  })
-                                : "N/A"}
-                            </span>
-                            {isOwnMessage && (
-                              <span className="ml-1 text-[10px] text-blue-100">✓</span>
-                            )}
-                          </div>
+                          {msg.type !== "newUser" && (
+                            <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+                              <span className={`text-[10px] ${isOwnMessage ? "text-blue-100" : "text-gray-500"}`}>
+                                {msg.createdAt
+                                  ? new Date(msg.createdAt).toLocaleTimeString([], { 
+                                      hour: "2-digit", 
+                                      minute: "2-digit", 
+                                      hour12: true 
+                                    })
+                                  : "N/A"}
+                              </span>
+                              {isOwnMessage && (
+                                <span className="ml-1 text-[10px] text-blue-100">✓</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

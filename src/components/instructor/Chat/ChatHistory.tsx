@@ -5,6 +5,7 @@ import { config } from "../../../common/configurations";
 import { useSelector } from "react-redux";
 import { useSocketContext } from "../../../contexts/SocketContext";
 import { RootState } from "../../../redux/store";
+import { toast } from "react-hot-toast";
 
 enum ContentType {
   TEXT = "text",
@@ -56,6 +57,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -69,26 +71,43 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   };
   
   useEffect(() => {
-    // Join the chat room using the existing socket
     if (socket && chat?._id) {
       socket.emit("join", { chatId: chat._id, userId: instructorId });
       
-      // Listen for new messages
-      socket.on("message", (newMessage: Message) => {
-        console.log("this is the new message", newMessage);
-        setMessages(prevMessages => [...prevMessages, newMessage]);
+      const handleNewMessage = (newMessage: Message) => {
+        console.log("Received message:", newMessage);
+        setMessages(prev => {
+          const exists = prev.some(m => 
+            m._id === newMessage._id || 
+            (m.content === newMessage.content && 
+             m.sender === newMessage.sender && 
+             m.createdAt === newMessage.createdAt)
+          );
+          if (exists) return prev;
+          return [...prev, newMessage];
+        });
         setTimeout(scrollToBottom, 100);
-      });
+      };
 
-      // Listen for user joined events
-      socket.on("userJoined", (data: { message: string }) => {
-        console.log(data.message);
-      });
+      const handleMessageSent = (data: { success: boolean, messageId: string }) => {
+        console.log("Message sent confirmation:", data);
+        setIsSending(false);
+      };
+
+      const handleMessageError = (error: any) => {
+        console.error("Message error:", error);
+        setIsSending(false);
+        toast.error("Failed to send message. Please try again.");
+      };
       
-      // Cleanup listeners on unmount or when chat changes
+      socket.on("message", handleNewMessage);
+      socket.on("messageSent", handleMessageSent);
+      socket.on("messageError", handleMessageError);
+      
       return () => {
-        socket.off("message");
-        socket.off("userJoined");
+        socket.off("message", handleNewMessage);
+        socket.off("messageSent", handleMessageSent);
+        socket.off("messageError", handleMessageError);
       };
     }
   }, [socket, chat?._id, instructorId]);
@@ -127,46 +146,36 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !chat?._id) return;
-
-    const messageData: Message = {
-      content: newMessage,
-      sender: instructorId,
-      chatId: chat._id,
-      senderName: `${user?.username}`,
-      type: "message",
-      contentType: ContentType.TEXT,
-      createdAt: new Date().toISOString(), // Add timestamp when creating message
-    };
+    if (!newMessage.trim() || !chat?._id || isSending) return;
 
     try {
-      // Use the socket from context
+      setIsSending(true);
+
+      const messageData = {
+        content: newMessage,
+        sender: instructorId,
+        chatId: chat._id,
+        senderName: user?.username,
+        type: "message" as const,
+        contentType: ContentType.TEXT,
+        createdAt: new Date().toISOString(),
+      };
+
       if (socket) {
         socket.emit("sendMessage", messageData);
       }
 
-      // Clear input field
+      // Clear input immediately
       setNewMessage("");
-
-      // Also send to server via API for persistence
-      await commonRequest(
-        "POST", 
-        `${URL}/chat/message`,
-        {
-          content: messageData.content,
-          sender: messageData.sender,
-          chatId: messageData.chatId,
-          type: messageData.type,
-          contentType: messageData.contentType,
-          createdAt: messageData.createdAt
-        },
-        config
-      );
-
-      // Scroll to bottom after sending
+      
+      // Optimistically add message
+      // setMessages(prev => [...prev, messageData]);
+      
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error("Error sending message:", error);
+      setIsSending(false);
+      toast.error("Failed to send message");
     }
   };
 

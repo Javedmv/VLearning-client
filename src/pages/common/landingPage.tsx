@@ -39,6 +39,7 @@ const LandingPage:React.FC = () => {
         }
         
         <CourseList/>
+        
         {
             banners.length > 0 && <Carousel banner={banners} navigationType="arrows"/>
         }

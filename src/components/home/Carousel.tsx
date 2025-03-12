@@ -60,58 +60,69 @@ const Carousel: React.FC<CarouselProps> = ({ banner, navigationType }) => {
   };
 
   return (
-    <div ref={carouselRef} className="relative w-full h-[400px] overflow-hidden">
+    <div ref={carouselRef} className="relative w-full h-[500px] group">
       {/* Slides Container */}
       <div
-        className="flex transition-transform duration-500 ease-out h-full"
+        className="flex h-full transition-transform duration-700 ease-in-out"
         style={{ transform: `translateX(-${currentSlide * 100}%)` }}
       >
         {banner.map((slide) => (
-          <div key={slide?._id} className="w-full h-full flex-shrink-0 relative">
-            {/* Image */}
-            <img
-              src={slide?.imageUrl as string}
-              alt={slide.title}
-              className="w-full h-full object-cover"
-            />
+          <div 
+            key={slide?._id} 
+            className="w-full h-full flex-shrink-0 relative"
+          >
+            {/* Image with gradient overlay */}
+            <div className="absolute inset-0">
+              <img
+                src={slide?.imageUrl as string}
+                alt={slide.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent" />
+            </div>
 
-            {/* Content Overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex flex-col justify-center px-16">
-              <h2 className="text-white text-4xl font-bold mb-4">
-                {slide?.title}
+            {/* Content */}
+            <div className="relative h-full flex flex-col justify-end px-8 md:px-16 pb-20 text-white">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4 animate-fadeIn">
+                {slide?.description}
               </h2>
-              <p className="text-white text-xl">{slide?.description}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Navigation */}
+      {/* Navigation Controls */}
       {navigationType === 'dots' ? (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 z-10">
           {banner.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all ${
-                currentSlide === index
-                  ? 'bg-white w-8'
-                  : 'bg-white/50 hover:bg-white/80'
-              }`}
+              className={`
+                h-2 rounded-full transition-all duration-300
+                ${currentSlide === index ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'}
+              `}
+              aria-label={`Go to slide ${index + 1}`}
             />
           ))}
         </div>
       ) : (
-        <div className="absolute top-1/2 -translate-y-1/2 flex justify-between w-full px-4">
+        <div className="absolute inset-0 flex items-center justify-between px-4">
           <button
             onClick={handlePrevSlide}
-            className="bg-black bg-opacity-20 hover:bg-opacity-60 text-white p-2 rounded-full"
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 
+                     bg-black/30 hover:bg-black/50 text-white p-3 rounded-full 
+                     transform hover:scale-110"
+            aria-label="Previous slide"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button
             onClick={handleNextSlide}
-            className="bg-black bg-opacity-20 hover:bg-opacity-60 text-white p-2 rounded-full"
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 
+                     bg-black/30 hover:bg-black/50 text-white p-3 rounded-full 
+                     transform hover:scale-110"
+            aria-label="Next slide"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
