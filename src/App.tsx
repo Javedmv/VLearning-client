@@ -39,6 +39,8 @@ const BannerComponent = React.lazy(() => import('./pages/admin/Banner'));
 const LearningCourseDetail = React.lazy(() => import('./pages/user/LearningCourseDetail'));
 import PaymentHistory from './pages/user/payment/paymentHistory';
 import ChatPage from './pages/instructor/ChatPage';
+import Transactions from './pages/admin/Transactions';
+const EarningsPage = React.lazy(() => import('./pages/instructor/EarningsPage'));
 const AboutUs = React.lazy(() => import('./pages/common/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/common/ContactUs'));
 
@@ -147,6 +149,10 @@ const router = (user: any) =>
           {
             path: 'chat',
             element: <ChatPage/>
+          },
+          {
+            path: 'earnings',
+            element: <EarningsPage />
           }
         ],
       },
@@ -171,6 +177,7 @@ const router = (user: any) =>
           { path: 'banner', element: <BannerComponent /> },
           { path: 'settings', element: <Settings /> },
           { path: 'logout', element: <Navigate to="/" replace /> },
+          { path: 'transactions', element: <Transactions /> },
           { path: '*', element: <Navigate to="/admin" replace /> },
         ],
       },

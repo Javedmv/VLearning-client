@@ -3,13 +3,13 @@ import { LucideIcon } from 'lucide-react';
 interface StatsCardProps {
   title: string;
   value: string;
-  change: string;
-  isPositive: boolean;
   icon: LucideIcon;
   color: string;
+  change?: string;
+  isPositive?: boolean;
 }
 
-const StatsCard = ({ title, value, change, isPositive, icon: Icon, color }: StatsCardProps) => {
+const StatsCard = ({ title, value, icon: Icon, color }: StatsCardProps) => {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
@@ -20,12 +20,6 @@ const StatsCard = ({ title, value, change, isPositive, icon: Icon, color }: Stat
         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${color}`}>
           <Icon className="w-6 h-6 text-white" />
         </div>
-      </div>
-      <div className="mt-4">
-        <span className={`text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-          {change}
-        </span>
-        <span className="text-sm text-gray-600 ml-1">vs last month</span>
       </div>
     </div>
   );

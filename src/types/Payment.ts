@@ -7,6 +7,8 @@ export interface Payment {
     courseId: string;
     instructorId: string;
     amount: number;
+    instructorEarnings?: number;
+    adminEarnings?: number;
     currency: string;
     status: string;
     customerEmail: string;

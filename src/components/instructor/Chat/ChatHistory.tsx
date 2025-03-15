@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Smile, Paperclip } from "lucide-react";
+import { Send, Smile, Paperclip, Video, VideoIcon, X } from "lucide-react";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
 import { useSelector } from "react-redux";
@@ -52,12 +52,13 @@ interface ChatHistoryProps {
 
 export function ChatHistory({ chat }: ChatHistoryProps) {
   const { user } = useSelector((state: RootState) => state.user);
-  const { socket } = useSocketContext();
+  const { socket, initiateVideoCall, endVideoCall, isVideoCallActive, localStream, remoteStream, setIsVideoCallActive } = useSocketContext();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -104,10 +105,25 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       socket.on("messageSent", handleMessageSent);
       socket.on("messageError", handleMessageError);
       
+      const handleVideoCallStarted = () => {
+        setIsVideoCallActive(true);
+        toast.success("Video call started. Join now!");
+      };
+
+      const handleVideoCallEnded = () => {
+        setIsVideoCallActive(false);
+        toast.success("Video call ended.");
+      };
+
+      socket.on("videoCallStarted", handleVideoCallStarted);
+      socket.on("videoCallEnded", handleVideoCallEnded);
+      
       return () => {
         socket.off("message", handleNewMessage);
         socket.off("messageSent", handleMessageSent);
         socket.off("messageError", handleMessageError);
+        socket.off("videoCallStarted", handleVideoCallStarted);
+        socket.off("videoCallEnded", handleVideoCallEnded);
       };
     }
   }, [socket, chat?._id, instructorId]);
@@ -235,6 +251,35 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
+  const handleVideoCall = async () => {
+    try {
+      if (isVideoCallActive) {
+        endVideoCall(chat._id);
+        setShowVideoModal(false);
+      } else {
+        setShowVideoModal(true);  // Show modal first
+        await initiateVideoCall(chat._id);  // Then initiate call
+      }
+    } catch (error) {
+      console.error('Error handling video call:', error);
+      setShowVideoModal(false);
+    }
+  };
+
+  const joinVideoCall = () => {
+    // Logic to join the video call, e.g., open a new window or modal
+    console.log("Joining video call...");
+  };
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      if (isVideoCallActive) {
+        endVideoCall(chat._id);
+      }
+    };
+  }, []);
+
   if (!chat?._id) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-200 to-indigo-50">
@@ -253,12 +298,66 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-200 to-indigo-50">
       {/* Chat header */}
-      <div className="p-4 bg-white/80 shadow-sm backdrop-blur-sm flex items-center">
+      <div className="p-4 bg-white/80 shadow-sm backdrop-blur-sm flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">{chat.groupName}</h2>
           <p className="text-sm text-gray-500">{chat.users.length} participants</p>
         </div>
+        <div className="flex space-x-2">
+          <button 
+            onClick={handleVideoCall} 
+            className={`p-2 transition-colors ${
+              isVideoCallActive ? 'text-red-500 hover:text-red-700' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Video className="w-6 h-6" />
+          </button>
+        </div>
       </div>
+
+      {/* Video call modal */}
+      {showVideoModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-4xl">
+            <div className="flex justify-between mb-4">
+              <h3 className="text-lg font-semibold">Video Call</h3>
+              <button onClick={() => {
+                endVideoCall(chat._id);
+                setShowVideoModal(false);
+              }} className="text-red-500">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {localStream && (
+                <div className="relative">
+                  <video
+                    ref={video => {
+                      if (video) video.srcObject = localStream;
+                    }}
+                    autoPlay
+                    muted
+                    className="w-full rounded-lg"
+                  />
+                  <p className="absolute bottom-2 left-2 text-white">You</p>
+                </div>
+              )}
+              {remoteStream && (
+                <div className="relative">
+                  <video
+                    ref={video => {
+                      if (video) video.srcObject = remoteStream;
+                    }}
+                    autoPlay
+                    className="w-full rounded-lg"
+                  />
+                  <p className="absolute bottom-2 left-2 text-white">Remote User</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages area - this is the scrollable container */}
       <div className="flex-1 overflow-y-auto p-6" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users } from "lucide-react";
+import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users, VideoIcon } from "lucide-react";
 import { useSocketContext } from "../../../context/SocketProvider";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
@@ -75,9 +75,10 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
   const instructorId = enrollment?.courseId?.instructorId;
   const instructorName = enrollment?.courseId?.instructor?.firstName + " " + enrollment?.courseId?.instructor?.lastName;
   
-  const { socket, onlineUsers, messages } = useSocketContext();
+  const { socket, onlineUsers, messages, joinVideoCall, endVideoCall, isVideoCallActive, localStream, remoteStream, setIsVideoCallActive } = useSocketContext();
   // Add message sending state
   const [isSending, setIsSending] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   // Fetch existing chat messages when chat is opened
   useEffect(() => {
@@ -186,10 +187,25 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
       socket.on("messageSent", handleMessageSent);
       socket.on("messageError", handleMessageError);
       
+      const handleVideoCallStarted = () => {
+        setIsVideoCallActive(true);
+        toast.success("Video call started. Join now!");
+      };
+
+      const handleVideoCallEnded = () => {
+        setIsVideoCallActive(false);
+        toast.success("Video call ended.");
+      };
+
+      socket.on("videoCallStarted", handleVideoCallStarted);
+      socket.on("videoCallEnded", handleVideoCallEnded);
+      
       return () => {
         socket.off("message", handleNewMessage);
         socket.off("messageSent", handleMessageSent);
         socket.off("messageError", handleMessageError);
+        socket.off("videoCallStarted", handleVideoCallStarted);
+        socket.off("videoCallEnded", handleVideoCallEnded);
       };
     }
   }, [socket, chatData?._id, user._id]);
@@ -312,6 +328,13 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
     return senderId === user._id;
   };
 
+  const handleJoinVideoCall = () => {
+    if (chatData?._id) {
+      joinVideoCall(chatData._id);
+      setShowVideoModal(true);
+    }
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-40">
       {/* Chat Box */}
@@ -328,10 +351,61 @@ const ChatBar: React.FC<ChatBarProp> = ({enrollment}) => {
                 <span>{participantsCount} participants</span>
               </div>
             </div>
-            <button onClick={toggleChat} className="p-1 hover:bg-gray-200 rounded-full">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex space-x-2">
+              {isVideoCallActive && (
+                <button onClick={handleJoinVideoCall} className="p-1 hover:bg-gray-200 rounded-full">
+                  <Video className="w-5 h-5" />
+                </button>
+              )}
+              <button onClick={toggleChat} className="p-1 hover:bg-gray-200 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Video call modal */}
+          {showVideoModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-4xl">
+                <div className="flex justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Video Call</h3>
+                  <button onClick={() => {
+                    endVideoCall(chatData?._id || '');
+                    setShowVideoModal(false);
+                  }} className="text-red-500">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {localStream && (
+                    <div className="relative">
+                      <video
+                        ref={video => {
+                          if (video) video.srcObject = localStream;
+                        }}
+                        autoPlay
+                        muted
+                        className="w-full rounded-lg"
+                      />
+                      <p className="absolute bottom-2 left-2 text-white">You</p>
+                    </div>
+                  )}
+                  {remoteStream && (
+                    <div className="relative">
+                      <video
+                        ref={video => {
+                          if (video) video.srcObject = remoteStream;
+                        }}
+                        autoPlay
+                        className="w-full rounded-lg"
+                      />
+                      <p className="absolute bottom-2 left-2 text-white">Remote User</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="h-80 overflow-y-auto p-2 bg-gray-50/90 rounded scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
