@@ -6,6 +6,7 @@ import { config } from "../../../common/configurations";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../redux/store";
 import toast from "react-hot-toast";
+import ParticipantsModal from "./ParticipantsModal";
 
 // Content types enum
 enum ContentType {
@@ -69,9 +70,9 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   const [chatData, setChatData] = useState<Chat | null>(null);
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [participantsCount, setParticipantsCount] = useState(0);
+  const [participants, setParticipants] = useState([]);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [IsParticipantsModalOpen ,setIsParticipantsModalOpen] = useState(false)
+  const [isParticipantsModalOpen ,setIsParticipantsModalOpen] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const courseId = enrollment?.courseId?._id;
@@ -114,8 +115,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
       if (chatResponse.success && chatResponse.data) {
         setChatData(chatResponse.data);
-        console.log("Chat data:", chatResponse.data.users,"chatResponse.data.users");
-        setParticipantsCount(chatResponse.data.users?.length || 0);
+        setParticipants(chatResponse.data.users || []);
 
         const messagesResponse = await commonRequest(
           "GET",
@@ -353,26 +353,22 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
       {isOpen && (
         <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-gray-400/80 shadow-lg rounded-lg p-4 border border-gray-300 transition-all duration-300">
           <div className="flex justify-between items-center border-b pb-2 mb-2">
-            <div>
-              <h3 className="font-semibold text-lg">
-                {chatData?.groupName || `${courseName} Chat`}
-              </h3>
-              <div className="flex items-center text-xs text-gray-600">
-                <button
-                  onClick={() => setIsParticipantsModalOpen(true)}
-                  className="hover:underline"
-                >
-                  <Users className="w-3 h-3 mr-1" />
-                  <span>{participantsCount} participants</span>
-                </button>
-                
+          <div className="items-center space-x-2">
+            <h3 className="font-semibold text-lg">{chatData?.groupName || `${courseName} Chat`}</h3>
+            <button
+              onClick={() => setIsParticipantsModalOpen(true)}
+              className="hover:underline flex items-center text-xs text-gray-600"
+              disabled={isVideoCallActive}
+            >
+              <Users className="w-3 h-3 mr-1" />
+              <span>
+                {participants.length} participants
                 {typingUsers.filter((u) => u.chatId === chatData?._id).length > 0 && (
-                  <span className="ml-2 italic text-gray-700 animate-pulse">
-                    • {getTypingMessage()}
-                  </span>
+                  <span className="italic text-gray-700 animate-pulse ml-1">• {getTypingMessage()}</span>
                 )}
-              </div>
-            </div>
+              </span>
+            </button>
+          </div>
             <div className="flex space-x-2">
               {isVideoCallActive && (
                 <button
@@ -387,6 +383,12 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
               </button>
             </div>
           </div>
+
+          <ParticipantsModal
+            isOpen={isParticipantsModalOpen}
+            onClose={() => setIsParticipantsModalOpen(false)}
+            participants={participants} 
+          />
 
           {showVideoModal && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

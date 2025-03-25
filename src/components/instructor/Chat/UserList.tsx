@@ -65,9 +65,9 @@ export function UserList({ users, selectedUserId, onSelectUser }: UserListProps)
                   <h3 className="text-base font-semibold text-gray-900 truncate">
                     {chat.groupName}
                   </h3>
-                  <p className="text-sm text-gray-500 truncate">
+                  {/* <p className="text-sm text-gray-500 truncate">
                     {chat.latestMessage || "No messages yet"}
-                  </p>
+                  </p> */}
                   <p className="text-xs text-gray-400">
                     {chat.users.length} participants
                   </p>

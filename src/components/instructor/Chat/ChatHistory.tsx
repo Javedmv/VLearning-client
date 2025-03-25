@@ -3,9 +3,11 @@ import { Send, Smile, Paperclip, Video, X } from "lucide-react";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
 import { useSelector } from "react-redux";
-import { useSocketContext } from "../../../context/SocketProvider"; // Updated context import
+import { useSocketContext } from "../../../context/SocketProvider";
 import { RootState } from "../../../redux/store";
 import { toast } from "react-hot-toast";
+import ParticipantsModal from "../../common/Chat/ParticipantsModal";
+import { string } from "yup";
 
 enum ContentType {
   TEXT = "text",
@@ -49,7 +51,7 @@ interface Chat {
 
 interface ChatHistoryProps {
   chat: Chat;
-  selectedUser: any; // This seems unused but kept for compatibility
+  selectedUser: any;
 }
 
 export function ChatHistory({ chat }: ChatHistoryProps) {
@@ -62,8 +64,8 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     localStream,
     remoteStream,
     setIsVideoCallActive,
-    typingUsers, // Access typingUsers from context
-    handleTyping, // Access handleTyping from context
+    typingUsers,
+    handleTyping,
   } = useSocketContext();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -71,7 +73,8 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   const [loading, setLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [isInputFocused, setIsInputFocused] = useState(false); // Track input focus
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -142,7 +145,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   }, [socket, chat?._id, instructorId]);
 
-  // Emit typing events when user types
   useEffect(() => {
     let typingInterval: NodeJS.Timeout | null = null;
 
@@ -221,30 +223,33 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
+  // Function to get username from messages based on sender ID
+  const getUsernameFromMessages = (senderId: string): string => {
+    const messageWithUsername = messages.find((m) => {
+      const mSenderId = typeof m.sender === "string" ? m.sender : m.sender?._id;
+      return mSenderId === senderId && 
+             ((typeof m.sender === "object" && m.sender?.username) || m.senderName);
+    });
+
+    if (messageWithUsername) {
+      return (typeof messageWithUsername.sender === "object" && messageWithUsername.sender?.username) || 
+             messageWithUsername.senderName || 
+             "Unknown User";
+    }
+    return `User-${senderId.substring(0, 4)}`; // Fallback if no username found
+  };
+
   const getSenderName = (message: Message): string => {
-    if (message.senderName) {
-      return message.sender === user._id ||
-        (typeof message.sender === "object" && message.sender?._id === user._id)
-        ? "You"
-        : message.senderName;
+    const senderId = typeof message.sender === "string" ? message.sender : message.sender?._id;
+
+    if (senderId === user._id) {
+      return "You";
     }
 
-    if (typeof message.sender === "object") {
-      if (message.sender?._id === user._id) {
-        return "You";
-      }
-      return message.sender?.username || "Unknown User";
-    }
-    if (typeof message.sender === "string") {
-      return message.sender === user._id ? "You" : "Unknown User";
-    }
-    return "Unknown User";
+    return getUsernameFromMessages(senderId!);
   };
 
   const getSenderInitials = (message: Message): string => {
-    if (typeof message.sender === "object" && message.sender?.username) {
-      return message.sender.username[0].toUpperCase();
-    }
     const name = getSenderName(message);
     return name[0].toUpperCase();
   };
@@ -283,7 +288,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
-  // Construct the typing message
   const getTypingMessage = () => {
     const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chat?._id);
     if (currentChatTypingUsers.length === 0) return "";
@@ -291,6 +295,14 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     if (currentChatTypingUsers.length === 2)
       return `${currentChatTypingUsers[0].username} and ${currentChatTypingUsers[1].username} are typing...`;
     return `${currentChatTypingUsers.length} people are typing...`;
+  };
+
+  // Create participants list with usernames from messages
+  const getParticipantsWithUsernames = () => {
+    return chat.users.map((userId) => ({
+      _id: userId,
+      username: userId === instructorId ? instructorName : getUsernameFromMessages(userId),
+    }));
   };
 
   useEffect(() => {
@@ -320,14 +332,17 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       <div className="p-4 bg-white/80 shadow-sm backdrop-blur-sm flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">{chat.groupName}</h2>
-          <div className="flex items-center text-sm text-gray-500">
+          <button
+            onClick={() => setIsParticipantsModalOpen(true)}
+            className="flex items-center text-sm text-gray-500 hover:text-gray-700 hover:underline transition-colors duration-200"
+          >
             <span>{chat.users.length} participants</span>
             {typingUsers.filter((u) => u.chatId === chat?._id).length > 0 && (
               <span className="ml-2 italic text-gray-600 animate-pulse">
                 • {getTypingMessage()}
               </span>
             )}
-          </div>
+          </button>
         </div>
         <div className="flex space-x-2">
           <button
@@ -340,6 +355,13 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           </button>
         </div>
       </div>
+
+      {/* Participants Modal */}
+      <ParticipantsModal
+        isOpen={isParticipantsModalOpen}
+        onClose={() => setIsParticipantsModalOpen(false)}
+        participants={getParticipantsWithUsernames()}
+      />
 
       {/* Video call modal */}
       {showVideoModal && (
@@ -471,7 +493,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                                 isOwnMessage ? "text-gray-300" : "text-gray-500"
                               } ${isOwnMessage ? "text-right" : "text-left"}`}
                             >
-                              {isOwnMessage ? "You" : getSenderName(message)}
+                              {getSenderName(message)}
                             </p>
                           )}
                           <p className="text-sm leading-snug">{message.content}</p>
