@@ -7,10 +7,19 @@ import { toast } from "react-hot-toast";
 
 const SOCKET_URL = import.meta.env.VITE_REACT_APP_CHAT_URL;
 
+// Define typing user interface
+interface TypingUser {
+  chatId: string;
+  userId: string;
+  username: string;
+  timestamp: number;
+}
+
 interface SocketContextType {
   socket: Socket | null;
   messages: Message[];
   onlineUsers: string[];
+  typingUsers: TypingUser[]; // Added typing users to context
   joinChatRoom: (chatId: string) => void;
   leaveChatRoom: (chatId: string) => void;
   sendMessage: (message: Partial<Message>) => void;
@@ -22,12 +31,14 @@ interface SocketContextType {
   remoteStream: MediaStream | null;
   localStream: MediaStream | null;
   setIsVideoCallActive: (isActive: boolean) => void;
+  handleTyping: (chatId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   messages: [],
   onlineUsers: [],
+  typingUsers: [], // Default empty array
   joinChatRoom: () => {},
   leaveChatRoom: () => {},
   sendMessage: () => {},
@@ -38,12 +49,13 @@ const SocketContext = createContext<SocketContextType>({
   isVideoCallActive: false,
   remoteStream: null,
   localStream: null,
-  setIsVideoCallActive: () => {}
+  setIsVideoCallActive: () => {},
+  handleTyping: () => {},
 });
 
 export const useSocketContext = (): SocketContextType => {
   return useContext(SocketContext);
-}
+};
 
 interface SocketProviderProps {
   children: ReactNode;
@@ -55,6 +67,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [typingUsers, setTypingsUsers] = useState<TypingUser[]>([]); // State for typing users
   const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -62,8 +75,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   const iceServers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
-    ]
+      { urls: "stun:stun.l.google.com:19302" },
+    ],
   };
 
   const createPeerConnection = () => {
@@ -72,7 +85,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          socket?.emit('ice-candidate', { candidate: event.candidate });
+          socket?.emit("ice-candidate", { candidate: event.candidate });
         }
       };
 
@@ -89,7 +102,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setPeerConnection(pc);
       return pc;
     } catch (error) {
-      console.error('Error creating peer connection:', error);
+      console.error("Error creating peer connection:", error);
       return null;
     }
   };
@@ -99,8 +112,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       return true;
     } catch (error) {
-      console.error('Media permissions error:', error);
-      toast.error('Please allow camera and microphone access');
+      console.error("Media permissions error:", error);
+      toast.error("Please allow camera and microphone access");
       return false;
     }
   };
@@ -110,49 +123,43 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       const hasPermissions = await checkMediaPermissions();
       if (!hasPermissions) return;
 
-      // First check if we already have a stream
       if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+        localStream.getTracks().forEach((track) => track.stop());
       }
 
-      // Get new media stream
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: true
+        audio: true,
       });
 
       setLocalStream(stream);
 
       const pc = createPeerConnection();
       if (!pc) {
-        throw new Error('Failed to create peer connection');
+        throw new Error("Failed to create peer connection");
       }
 
-      // Add tracks to peer connection
-      stream.getTracks().forEach(track => {
+      stream.getTracks().forEach((track) => {
         pc.addTrack(track, stream);
       });
 
-      // Create and set local description
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
-        offerToReceiveVideo: true
+        offerToReceiveVideo: true,
       });
-      
+
       await pc.setLocalDescription(offer);
 
-      // Emit the offer to the other peer
-      socket?.emit('startVideoCall', { chatId, offer });
+      socket?.emit("startVideoCall", { chatId, offer });
       setIsVideoCallActive(true);
-      
-      console.log('Video call initiated successfully');
+
+      console.log("Video call initiated successfully");
     } catch (error: any) {
-      console.error('Error starting video call:', error);
-      toast.error(error.message || 'Failed to start video call');
-      
-      // Cleanup on error
+      console.error("Error starting video call:", error);
+      toast.error(error.message || "Failed to start video call");
+
       if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+        localStream.getTracks().forEach((track) => track.stop());
         setLocalStream(null);
       }
       if (peerConnection) {
@@ -170,62 +177,57 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       const pc = createPeerConnection();
       if (!pc) {
-        throw new Error('Failed to create peer connection');
+        throw new Error("Failed to create peer connection");
       }
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      socket?.emit('joinVideoCall', { chatId });
+      socket?.emit("joinVideoCall", { chatId });
       setIsVideoCallActive(true);
     } catch (error) {
-      console.error('Error joining video call:', error);
-      toast.error('Failed to join video call');
+      console.error("Error joining video call:", error);
+      toast.error("Failed to join video call");
     }
   };
 
   const endVideoCall = (chatId: string) => {
     try {
-      // Stop all tracks in the local stream
       if (localStream) {
-        localStream.getTracks().forEach(track => {
+        localStream.getTracks().forEach((track) => {
           track.stop();
         });
         setLocalStream(null);
       }
 
-      // Clear remote stream
       if (remoteStream) {
-        remoteStream.getTracks().forEach(track => {
+        remoteStream.getTracks().forEach((track) => {
           track.stop();
         });
         setRemoteStream(null);
       }
 
-      // Close peer connection
       if (peerConnection) {
         peerConnection.close();
         setPeerConnection(null);
       }
 
       setIsVideoCallActive(false);
-      socket?.emit('endVideoCall', { chatId });
+      socket?.emit("endVideoCall", { chatId });
     } catch (error) {
-      console.error('Error ending video call:', error);
+      console.error("Error ending video call:", error);
     }
   };
 
   useEffect(() => {
-    // Ensure user is logged in and socket URL is available
     if ((user?.role === "instructor" || user?.role === "student") && SOCKET_URL) {
-      // Create socket connection
       const newSocket = io(SOCKET_URL, {
         path: "/socket.io/",
         query: {
-            userId: user._id,
+          userId: user._id,
         },
-        transports: ['polling', 'websocket'], // Try both transports
+        transports: ["polling", "websocket"],
         reconnectionAttempts: 5,
-        timeout: 10000
-    });
+        timeout: 10000,
+      });
 
       const handleConnect = () => {
         console.log("Socket connected");
@@ -243,115 +245,128 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       };
 
       const handleIncomingMessage = (message: Message) => {
-        setMessages(prevMessages => [...prevMessages, message]);
+        setMessages((prevMessages) => [...prevMessages, message]);
       };
 
-      const handleVideoCallStarted = () => {
-        console.log("Video call started");
-        // You might want to update some state here to reflect the video call status
+      const handleUserTyping = ({ chatId, userId, username }: { chatId: string; userId: string; username: string }) => {
+        if (userId !== user?._id) {
+          console.log(`Received typing from ${username} (${userId}) in chat ${chatId}`);
+          setTypingsUsers((prev) => {
+            const filtered = prev.filter((u) => u.userId !== userId && u.chatId === chatId);
+            return [...filtered, { chatId, userId, username, timestamp: Date.now() }];
+          });
+        }
       };
 
-      const handleVideoCallEnded = () => {
-        console.log("Video call ended");
-        // Update state to reflect the video call has ended
-      };
+      newSocket.on("connect_error", (error) => {
+        console.error("Connection error:", error);
+      });
+      newSocket.on("connect", handleConnect);
+      newSocket.on("disconnect", handleDisconnect);
+      newSocket.on("getOnlineUsers", handleOnlineUsers);
+      newSocket.on("receiveMessage", handleIncomingMessage);
+      newSocket.on("userTyping", handleUserTyping);
 
-      // Attach event listeners
-      newSocket.on('connect_error', (error) => {
-        console.error('Connection error:', error);
-      })
-      newSocket.on('connect', handleConnect);
-      newSocket.on('disconnect', handleDisconnect);
-      newSocket.on('getOnlineUsers', handleOnlineUsers);
-      newSocket.on('receiveMessage', handleIncomingMessage);
-      newSocket.on('videoCallStarted', handleVideoCallStarted);
-      newSocket.on('videoCallEnded', handleVideoCallEnded);
+      newSocket.on("offer", async ({ offer }) => {
+        try {
+          const pc = createPeerConnection();
+          if (!pc) throw new Error("Failed to create peer connection");
 
-      if (socket) {
-        socket.on('offer', async ({ offer }) => {
-          try {
-            const pc = createPeerConnection();
-            if (!pc) throw new Error('Failed to create peer connection');
+          await pc.setRemoteDescription(new RTCSessionDescription(offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
 
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            
-            socket.emit('answer', { answer });
-          } catch (error) {
-            console.error('Error handling offer:', error);
+          newSocket.emit("answer", { answer });
+        } catch (error) {
+          console.error("Error handling offer:", error);
+        }
+      });
+
+      newSocket.on("answer", async ({ answer }) => {
+        try {
+          if (peerConnection && answer) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
           }
-        });
+        } catch (error) {
+          console.error("Error handling answer:", error);
+        }
+      });
 
-        socket.on('answer', async ({ answer }) => {
-          try {
-            if (peerConnection && answer) {
-              await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            }
-          } catch (error) {
-            console.error('Error handling answer:', error);
+      newSocket.on("ice-candidate", async ({ candidate }) => {
+        try {
+          if (peerConnection && candidate) {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
           }
-        });
+        } catch (error) {
+          console.error("Error handling ICE candidate:", error);
+        }
+      });
 
-        socket.on('ice-candidate', async ({ candidate }) => {
-          try {
-            if (peerConnection && candidate) {
-              await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-          } catch (error) {
-            console.error('Error handling ICE candidate:', error);
-          }
-        });
+      newSocket.on("videoCallStarted", () => {
+        setIsVideoCallActive(true);
+        toast.success("Video call started");
+      });
 
-        socket.on('videoCallStarted', () => {
-          setIsVideoCallActive(true);
-          toast.success('Video call started');
-        });
+      newSocket.on("videoCallEnded", () => {
+        endVideoCall("");
+        toast.success("Video call ended");
+      });
 
-        socket.on('videoCallEnded', () => {
-          endVideoCall('');  // Pass empty string since we're just cleaning up
-          toast.success('Video call ended');
-        });
-      }
-
-      // Cleanup function
       return () => {
-        newSocket.off('connect', handleConnect);
-        newSocket.off('disconnect', handleDisconnect);
-        newSocket.off('getOnlineUsers', handleOnlineUsers);
-        newSocket.off('receiveMessage', handleIncomingMessage);
-        newSocket.off('videoCallStarted', handleVideoCallStarted);
-        newSocket.off('videoCallEnded', handleVideoCallEnded);
+        newSocket.off("connect", handleConnect);
+        newSocket.off("disconnect", handleDisconnect);
+        newSocket.off("getOnlineUsers", handleOnlineUsers);
+        newSocket.off("receiveMessage", handleIncomingMessage);
+        newSocket.off("userTyping", handleUserTyping);
+        newSocket.off("offer");
+        newSocket.off("answer");
+        newSocket.off("ice-candidate");
+        newSocket.off("videoCallStarted");
+        newSocket.off("videoCallEnded");
         newSocket.disconnect();
       };
     }
   }, [user]);
 
-  // Function to join a chat room
+  // Cleanup typing indicators
+  useEffect(() => {
+    const typingTimeout = setInterval(() => {
+      const now = Date.now();
+      setTypingsUsers((prev) => prev.filter((user) => now - user.timestamp < 3000));
+    }, 1000);
+
+    return () => clearInterval(typingTimeout);
+  }, []);
+
   const joinChatRoom = (chatId: string) => {
     if (socket && user?._id && chatId) {
       socket.emit("join", { chatId, userId: user._id });
+      console.log(`Joined chat room ${chatId}`);
     }
   };
 
-  // Function to leave a chat room
   const leaveChatRoom = (chatId: string) => {
     if (socket && user?._id && chatId) {
       socket.emit("leave", { chatId, userId: user._id });
+      console.log(`Left chat room ${chatId}`);
     }
   };
 
-  // Function to send a message
   const sendMessage = (message: Partial<Message>) => {
     if (socket && user?._id && message.chatId) {
       const fullMessage = {
         ...message,
         sender: user._id,
         type: message.type || "message",
-        contentType: message.contentType || "text"
+        contentType: message.contentType || "text",
       };
       socket.emit("sendMessage", fullMessage);
+    }
+  };
+
+  const handleTyping = (chatId: string) => {
+    if (socket && user?._id && chatId) {
+      socket.emit("typing", { chatId, userId: user._id, username: user.username });
     }
   };
 
@@ -359,6 +374,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socket,
     messages,
     onlineUsers,
+    typingUsers, // Expose typing users
     joinChatRoom,
     leaveChatRoom,
     sendMessage,
@@ -369,17 +385,17 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     isVideoCallActive,
     remoteStream,
     localStream,
-    setIsVideoCallActive
+    setIsVideoCallActive,
+    handleTyping,
   };
 
   useEffect(() => {
     return () => {
-      // Cleanup when component unmounts
       if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+        localStream.getTracks().forEach((track) => track.stop());
       }
       if (remoteStream) {
-        remoteStream.getTracks().forEach(track => track.stop());
+        remoteStream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [localStream, remoteStream]);

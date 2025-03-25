@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Smile, Paperclip, Video, VideoIcon, X } from "lucide-react";
+import { Send, Smile, Paperclip, Video, X } from "lucide-react";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
 import { useSelector } from "react-redux";
-import { useSocketContext } from "../../../contexts/SocketContext";
+import { useSocketContext } from "../../../context/SocketProvider"; // Updated context import
 import { RootState } from "../../../redux/store";
 import { toast } from "react-hot-toast";
 
@@ -12,19 +12,21 @@ enum ContentType {
   IMAGE = "image",
   AUDIO = "audio",
   VIDEO = "video",
-  FILE = "file"
+  FILE = "file",
 }
 
 interface Message {
   _id?: string;
   content?: string;
-  sender: string | {
-    _id?: string;
-    username?: string;
-    firstName?: string;
-    lastName?: string;
-    profile?: any;
-  };
+  sender:
+    | string
+    | {
+        _id?: string;
+        username?: string;
+        firstName?: string;
+        lastName?: string;
+        profile?: any;
+      };
   senderName?: string;
   chatId?: string;
   contentType?: ContentType;
@@ -47,42 +49,54 @@ interface Chat {
 
 interface ChatHistoryProps {
   chat: Chat;
-  selectedUser: any; // This seems like it might be unused based on your interfaces
+  selectedUser: any; // This seems unused but kept for compatibility
 }
 
 export function ChatHistory({ chat }: ChatHistoryProps) {
   const { user } = useSelector((state: RootState) => state.user);
-  const { socket, initiateVideoCall, endVideoCall, isVideoCallActive, localStream, remoteStream, setIsVideoCallActive } = useSocketContext();
+  const {
+    socket,
+    initiateVideoCall,
+    endVideoCall,
+    isVideoCallActive,
+    localStream,
+    remoteStream,
+    setIsVideoCallActive,
+    typingUsers, // Access typingUsers from context
+    handleTyping, // Access handleTyping from context
+  } = useSocketContext();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  
+  const [isInputFocused, setIsInputFocused] = useState(false); // Track input focus
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const instructorName = user.username;
   const instructorId = user._id;
-  
+
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   };
-  
+
   useEffect(() => {
     if (socket && chat?._id) {
       socket.emit("join", { chatId: chat._id, userId: instructorId });
-      
+
       const handleNewMessage = (newMessage: Message) => {
         console.log("Received message:", newMessage);
-        setMessages(prev => {
-          const exists = prev.some(m => 
-            m._id === newMessage._id || 
-            (m.content === newMessage.content && 
-             m.sender === newMessage.sender && 
-             m.createdAt === newMessage.createdAt)
+        setMessages((prev) => {
+          const exists = prev.some(
+            (m) =>
+              m._id === newMessage._id ||
+              (m.content === newMessage.content &&
+                m.sender === newMessage.sender &&
+                m.createdAt === newMessage.createdAt)
           );
           if (exists) return prev;
           return [...prev, newMessage];
@@ -90,7 +104,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         setTimeout(scrollToBottom, 100);
       };
 
-      const handleMessageSent = (data: { success: boolean, messageId: string }) => {
+      const handleMessageSent = (data: { success: boolean; messageId: string }) => {
         console.log("Message sent confirmation:", data);
         setIsSending(false);
       };
@@ -100,11 +114,11 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         setIsSending(false);
         toast.error("Failed to send message. Please try again.");
       };
-      
+
       socket.on("message", handleNewMessage);
       socket.on("messageSent", handleMessageSent);
       socket.on("messageError", handleMessageError);
-      
+
       const handleVideoCallStarted = () => {
         setIsVideoCallActive(true);
         toast.success("Video call started. Join now!");
@@ -117,7 +131,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
 
       socket.on("videoCallStarted", handleVideoCallStarted);
       socket.on("videoCallEnded", handleVideoCallEnded);
-      
+
       return () => {
         socket.off("message", handleNewMessage);
         socket.off("messageSent", handleMessageSent);
@@ -128,15 +142,26 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   }, [socket, chat?._id, instructorId]);
 
-  async function fetchMessages(chatId:string) {
+  // Emit typing events when user types
+  useEffect(() => {
+    let typingInterval: NodeJS.Timeout | null = null;
+
+    if (isInputFocused && socket && chat?._id && newMessage.length > 0) {
+      handleTyping(chat._id);
+      typingInterval = setInterval(() => {
+        handleTyping(chat._id);
+      }, 2000);
+    }
+
+    return () => {
+      if (typingInterval) clearInterval(typingInterval);
+    };
+  }, [isInputFocused, socket, chat?._id, newMessage, handleTyping]);
+
+  async function fetchMessages(chatId: string) {
     try {
       setLoading(true);
-      const response = await commonRequest(
-        "GET", 
-        `${URL}/chat/messages/${chatId}`,
-        {},
-        config
-      );
+      const response = await commonRequest("GET", `${URL}/chat/messages/${chatId}`, {}, config);
       console.log("response", response.data);
       setMessages(response.data);
       setLoading(false);
@@ -150,10 +175,9 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     if (!chat?._id) return;
     fetchMessages(chat._id);
   }, [chat?._id]);
-  
+
   useEffect(() => {
     if (messages.length > 0) {
-      // Use a slight delay to ensure DOM has updated
       const timeoutId = setTimeout(() => {
         scrollToBottom();
       }, 100);
@@ -181,12 +205,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         socket.emit("sendMessage", messageData);
       }
 
-      // Clear input immediately
       setNewMessage("");
-      
-      // Optimistically add message
-      // setMessages(prev => [...prev, messageData]);
-      
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -196,38 +215,36 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
 
   const getSenderName = (message: Message): string => {
-    // First check if senderName is available
     if (message.senderName) {
-      return message.sender === user._id || 
-             (typeof message.sender === 'object' && message.sender?._id === user._id) 
-             ? 'You' : message.senderName;
+      return message.sender === user._id ||
+        (typeof message.sender === "object" && message.sender?._id === user._id)
+        ? "You"
+        : message.senderName;
     }
-    
-    // Fall back to previous logic
-    if (typeof message.sender === 'object') {
+
+    if (typeof message.sender === "object") {
       if (message.sender?._id === user._id) {
-        return 'You';
+        return "You";
       }
-      return message.sender?.username || 'Unknown User';
+      return message.sender?.username || "Unknown User";
     }
-    if (typeof message.sender === 'string') {
-      return message.sender === user._id ? 'You' : 'Unknown User';
+    if (typeof message.sender === "string") {
+      return message.sender === user._id ? "You" : "Unknown User";
     }
-    return 'Unknown User';
+    return "Unknown User";
   };
 
   const getSenderInitials = (message: Message): string => {
-    if (typeof message.sender === 'object' && message.sender?.username) {
+    if (typeof message.sender === "object" && message.sender?.username) {
       return message.sender.username[0].toUpperCase();
     }
-    // Fallback to previous logic
     const name = getSenderName(message);
     return name[0].toUpperCase();
   };
@@ -239,14 +256,14 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      return "Today";
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
+      return "Yesterday";
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
       });
     }
   };
@@ -257,21 +274,25 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         endVideoCall(chat._id);
         setShowVideoModal(false);
       } else {
-        setShowVideoModal(true);  // Show modal first
-        await initiateVideoCall(chat._id);  // Then initiate call
+        setShowVideoModal(true);
+        await initiateVideoCall(chat._id);
       }
     } catch (error) {
-      console.error('Error handling video call:', error);
+      console.error("Error handling video call:", error);
       setShowVideoModal(false);
     }
   };
 
-  const joinVideoCall = () => {
-    // Logic to join the video call, e.g., open a new window or modal
-    console.log("Joining video call...");
+  // Construct the typing message
+  const getTypingMessage = () => {
+    const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chat?._id);
+    if (currentChatTypingUsers.length === 0) return "";
+    if (currentChatTypingUsers.length === 1) return `${currentChatTypingUsers[0].username} is typing...`;
+    if (currentChatTypingUsers.length === 2)
+      return `${currentChatTypingUsers[0].username} and ${currentChatTypingUsers[1].username} are typing...`;
+    return `${currentChatTypingUsers.length} people are typing...`;
   };
 
-  // Add cleanup effect
   useEffect(() => {
     return () => {
       if (isVideoCallActive) {
@@ -284,9 +305,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-200 to-indigo-50">
         <div className="text-center p-8 rounded-2xl bg-white/50 backdrop-blur-sm shadow-xl">
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">
-            Welcome Back, Professor!
-          </h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">Welcome Back, Professor!</h3>
           <p className="text-gray-600 text-lg">
             Select a course chat from the list to start messaging
           </p>
@@ -301,13 +320,20 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       <div className="p-4 bg-white/80 shadow-sm backdrop-blur-sm flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">{chat.groupName}</h2>
-          <p className="text-sm text-gray-500">{chat.users.length} participants</p>
+          <div className="flex items-center text-sm text-gray-500">
+            <span>{chat.users.length} participants</span>
+            {typingUsers.filter((u) => u.chatId === chat?._id).length > 0 && (
+              <span className="ml-2 italic text-gray-600 animate-pulse">
+                • {getTypingMessage()}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex space-x-2">
-          <button 
-            onClick={handleVideoCall} 
+          <button
+            onClick={handleVideoCall}
             className={`p-2 transition-colors ${
-              isVideoCallActive ? 'text-red-500 hover:text-red-700' : 'text-gray-500 hover:text-gray-700'
+              isVideoCallActive ? "text-red-500 hover:text-red-700" : "text-gray-500 hover:text-gray-700"
             }`}
           >
             <Video className="w-6 h-6" />
@@ -321,10 +347,13 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-4xl">
             <div className="flex justify-between mb-4">
               <h3 className="text-lg font-semibold">Video Call</h3>
-              <button onClick={() => {
-                endVideoCall(chat._id);
-                setShowVideoModal(false);
-              }} className="text-red-500">
+              <button
+                onClick={() => {
+                  endVideoCall(chat._id);
+                  setShowVideoModal(false);
+                }}
+                className="text-red-500"
+              >
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -332,7 +361,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
               {localStream && (
                 <div className="relative">
                   <video
-                    ref={video => {
+                    ref={(video) => {
                       if (video) video.srcObject = localStream;
                     }}
                     autoPlay
@@ -345,7 +374,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
               {remoteStream && (
                 <div className="relative">
                   <video
-                    ref={video => {
+                    ref={(video) => {
                       if (video) video.srcObject = remoteStream;
                     }}
                     autoPlay
@@ -359,8 +388,11 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         </div>
       )}
 
-      {/* Messages area - this is the scrollable container */}
-      <div className="flex-1 overflow-y-auto p-6" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Messages area */}
+      <div
+        className="flex-1 overflow-y-auto p-6"
+        style={{ display: "flex", flexDirection: "column", height: "100%" }}
+      >
         <div className="space-y-6 flex-grow">
           {loading ? (
             <div className="flex justify-center">
@@ -372,18 +404,18 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
             </div>
           ) : (
             messages.map((message, index) => {
-              const isOwnMessage = typeof message.sender === 'string' 
-                ? message.sender === user._id
-                : message.sender._id === user._id;
-              
-              // Check if this message is from the same sender as the previous one
-              const isSameSender = index > 0 && (
-                typeof message.sender === 'string' 
+              const isOwnMessage =
+                typeof message.sender === "string"
+                  ? message.sender === user._id
+                  : message.sender._id === user._id;
+
+              const isSameSender =
+                index > 0 &&
+                (typeof message.sender === "string"
                   ? message.sender === messages[index - 1].sender
-                  : message.sender._id === (messages[index - 1].sender as any)._id
-              );
-              
-              const timestamp = message.createdAt 
+                  : message.sender._id === (messages[index - 1].sender as any)._id);
+
+              const timestamp = message.createdAt
                 ? new Date(message.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -393,11 +425,13 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                     minute: "2-digit",
                   });
 
-              const showDateHeader = index === 0 || (
-                message.createdAt && messages[index - 1].createdAt &&
-                formatMessageDate(message.createdAt as string | Date) !== formatMessageDate(messages[index - 1].createdAt as string | Date)
-              );
-              
+              const showDateHeader =
+                index === 0 ||
+                (message.createdAt &&
+                  messages[index - 1].createdAt &&
+                  formatMessageDate(message.createdAt as string | Date) !==
+                    formatMessageDate(messages[index - 1].createdAt as string | Date));
+
               return (
                 <React.Fragment key={message._id || index}>
                   {showDateHeader && message.createdAt && (
@@ -413,7 +447,9 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                         {message.content}
                       </div>
                     ) : (
-                      <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} w-full group mb-1`}>
+                      <div
+                        className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} w-full group mb-1`}
+                      >
                         {!isOwnMessage && !isSameSender && (
                           <div className="h-6 w-6 rounded-full bg-indigo-100 flex-shrink-0 mr-2 flex items-center justify-center overflow-hidden">
                             <span className="text-xs font-medium text-indigo-600">
@@ -421,7 +457,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                             </span>
                           </div>
                         )}
-                        {!isOwnMessage && isSameSender && <div className="w-6 mr-2" />} {/* Spacer for alignment */}
+                        {!isOwnMessage && isSameSender && <div className="w-6 mr-2" />}
                         <div
                           className={`max-w-[70%] rounded-xl py-2 px-3 shadow-sm transition-shadow group-hover:shadow-md ${
                             isOwnMessage
@@ -430,13 +466,21 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                           }`}
                         >
                           {!isSameSender && (
-                            <p className={`text-[11px] font-medium ${isOwnMessage ? "text-gray-300" : "text-gray-500"} ${isOwnMessage ? "text-right" : "text-left"}`}>
+                            <p
+                              className={`text-[11px] font-medium ${
+                                isOwnMessage ? "text-gray-300" : "text-gray-500"
+                              } ${isOwnMessage ? "text-right" : "text-left"}`}
+                            >
                               {isOwnMessage ? "You" : getSenderName(message)}
                             </p>
                           )}
                           <p className="text-sm leading-snug">{message.content}</p>
                           <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-                            <p className={`text-[10px] ${isOwnMessage ? "text-blue-100" : "text-gray-500"}`}>
+                            <p
+                              className={`text-[10px] ${
+                                isOwnMessage ? "text-blue-100" : "text-gray-500"
+                              }`}
+                            >
                               {timestamp}
                             </p>
                             {isOwnMessage && (
@@ -448,7 +492,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                     )}
                   </div>
                 </React.Fragment>
-              );              
+              );
             })
           )}
         </div>
@@ -467,6 +511,8 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyPress}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
               placeholder="Type your message..."
               className="w-full px-6 py-4 bg-white rounded-full border border-gray-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none text-gray-900 placeholder-gray-400 shadow-sm"
             />
