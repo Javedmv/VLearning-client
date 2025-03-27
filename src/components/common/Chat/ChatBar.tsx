@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../../redux/store";
 import toast from "react-hot-toast";
 import ParticipantsModal from "./ParticipantsModal";
+import VideoCallModal from "./VideoCallModal";
 
 // Content types enum
 enum ContentType {
@@ -97,6 +98,12 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   const [isSending, setIsSending] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
 
+  const [incomingCall, setIncomingCall] = useState<{
+    chatId: string;
+    callerId: string;
+    callerName: string;
+  } | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       fetchExistingChat();
@@ -186,11 +193,59 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         toast.error("Failed to send message. Please try again.");
       };
 
-      // No need for local userTyping handler since it's in SocketProvider
+      // Handle incoming call notification
+      const handleIncomingCall = (callData: { chatId: string; callerId: string; callerName: string }) => {
+        console.log("Incoming call:", callData);
+        if (callData.callerId !== user._id && !incomingCall) {
+          setIncomingCall(callData);
+          // Use a valid audio URL that's guaranteed to work
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2355/2355-preview.mp3');
+          audio.loop = true;
+          audio.play().catch(error => console.error('Error playing ringtone:', error));
+          (window as any).incomingCallAudio = audio;
+        }
+      };
 
-      socket.on("message", handleNewMessage);
-      socket.on("messageSent", handleMessageSent);
-      socket.on("messageError", handleMessageError);
+      // Handle call acceptance - only join once
+      const handleCallAccepted = (data: { chatId: string; accepterId: string }) => {
+        console.log("Call accepted:", data);
+        // Stop ringtone if playing
+        if ((window as any).incomingCallAudio) {
+          (window as any).incomingCallAudio.pause();
+          (window as any).incomingCallAudio = null;
+        }
+        
+        // Clear incoming call notification
+        setIncomingCall(null);
+        
+        if (data.chatId === chatData?._id) {
+          // Only show video modal if not already showing
+          if (!showVideoModal) {
+            setShowVideoModal(true);
+            // Only join if I'm the one who accepted
+            if (data.accepterId === user._id) {
+              joinVideoCall(chatData._id);
+            }
+          }
+        }
+      };
+
+      const handleCallRejected = (data: { chatId: string; rejecterId: string }) => {
+        console.log("Call rejected:", data);
+        // Stop ringtone if it's playing
+        if ((window as any).incomingCallAudio) {
+          (window as any).incomingCallAudio.pause();
+          (window as any).incomingCallAudio = null;
+        }
+        if (data.chatId === chatData._id) {
+          setIncomingCall(null);
+          if (data.rejecterId === user._id) {
+            toast.error("You declined the call");
+          } else {
+            toast.error("Call was declined by another participant");
+          }
+        }
+      };
 
       const handleVideoCallStarted = () => {
         setIsVideoCallActive(true);
@@ -199,16 +254,27 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
       const handleVideoCallEnded = () => {
         setIsVideoCallActive(false);
+        setShowVideoModal(false);
+        setIncomingCall(null);
         toast.success("Video call ended.");
       };
 
-      socket.on("videoCallStarted", handleVideoCallStarted);
-      socket.on("videoCallEnded", handleVideoCallEnded);
+      socket.on("message", handleNewMessage);
+      socket.on("messageSent", handleMessageSent);
+      socket.on("messageError", handleMessageError);
+      socket.off("incomingCall").on("incomingCall", handleIncomingCall);
+      socket.off("callAccepted").on("callAccepted", handleCallAccepted);
+      socket.off("callRejected").on("callRejected", handleCallRejected);
+      socket.off("videoCallStarted").on("videoCallStarted", handleVideoCallStarted);
+      socket.off("videoCallEnded").on("videoCallEnded", handleVideoCallEnded);
 
       return () => {
         socket.off("message", handleNewMessage);
         socket.off("messageSent", handleMessageSent);
         socket.off("messageError", handleMessageError);
+        socket.off("incomingCall", handleIncomingCall);
+        socket.off("callAccepted", handleCallAccepted);
+        socket.off("callRejected", handleCallRejected);
         socket.off("videoCallStarted", handleVideoCallStarted);
         socket.off("videoCallEnded", handleVideoCallEnded);
       };
@@ -331,12 +397,58 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     return senderId === user._id;
   };
 
-  const handleJoinVideoCall = () => {
-    if (chatData?._id) {
-      joinVideoCall(chatData._id);
+  // Add handlers for accepting and rejecting calls
+  const handleAcceptCall = () => {
+    if (incomingCall && socket) {
+      // Stop ringtone if it's playing
+      if ((window as any).incomingCallAudio) {
+        (window as any).incomingCallAudio.pause();
+        (window as any).incomingCallAudio = null;
+      }
+      
+      socket.emit("acceptCall", { 
+        chatId: incomingCall.chatId,
+        accepterId: user._id 
+      });
+      
+      setIncomingCall(null);
       setShowVideoModal(true);
+      
+      // Add a small delay before joining the call to ensure UI is ready
+      setTimeout(() => {
+        joinVideoCall(incomingCall.chatId);
+      }, 500);
     }
   };
+
+  const handleRejectCall = () => {
+    if (incomingCall && socket) {
+      socket.emit("rejectCall", { 
+        chatId: incomingCall.chatId,
+        rejecterId: user._id 
+      });
+      setIncomingCall(null);
+      // Stop ringtone if it's playing
+      if ((window as any).incomingCallAudio) {
+        (window as any).incomingCallAudio.pause();
+        (window as any).incomingCallAudio = null;
+      }
+    }
+  };
+
+  // Clean up video call resources when component unmounts
+  useEffect(() => {
+    return () => {
+      if (isVideoCallActive && chatData?._id) {
+        endVideoCall(chatData._id);
+      }
+      // Stop ringtone if it's playing
+      if ((window as any).incomingCallAudio) {
+        (window as any).incomingCallAudio.pause();
+        (window as any).incomingCallAudio = null;
+      }
+    };
+  }, []);
 
   // Construct the typing message using typingUsers from context
   const getTypingMessage = () => {
@@ -348,27 +460,47 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     return `${currentChatTypingUsers.length} people are typing...`;
   };
 
+  // Handle joining a video call - prevent duplicate joins
+  const handleJoinVideoCall = () => {
+    if (chatData?._id && !showVideoModal) {
+      joinVideoCall(chatData._id);
+      setShowVideoModal(true);
+    }
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-40">
-      {isOpen && (
-        <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-gray-400/80 shadow-lg rounded-lg p-4 border border-gray-300 transition-all duration-300">
-          <div className="flex justify-between items-center border-b pb-2 mb-2">
-          <div className="items-center space-x-2">
-            <h3 className="font-semibold text-lg">{chatData?.groupName || `${courseName} Chat`}</h3>
+      {/* Only show incoming call notification if not already in a call */}
+      {incomingCall && !showVideoModal && (
+        <div className="fixed top-4 right-4 z-50 bg-white p-4 rounded-lg shadow-xl max-w-sm">
+          <h3 className="text-lg font-semibold mb-2">Incoming Call</h3>
+          <p className="mb-4">{incomingCall.callerName} is calling...</p>
+          <div className="flex justify-end space-x-2">
             <button
-              onClick={() => setIsParticipantsModalOpen(true)}
-              className="hover:underline flex items-center text-xs text-gray-600"
-              disabled={isVideoCallActive}
+              onClick={handleRejectCall}
+              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
             >
-              <Users className="w-3 h-3 mr-1" />
-              <span>
-                {participants.length} participants
-                {typingUsers.filter((u) => u.chatId === chatData?._id).length > 0 && (
-                  <span className="italic text-gray-700 animate-pulse ml-1">• {getTypingMessage()}</span>
-                )}
-              </span>
+              Decline
+            </button>
+            <button
+              onClick={handleAcceptCall}
+              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+            >
+              Accept
             </button>
           </div>
+        </div>
+      )}
+
+      {isOpen && (
+        <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-gray-400/80 shadow-lg rounded-lg p-4 border border-gray-300 transition-all duration-300">
+          {/* Chat header */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center">
+              <span className="text-lg font-semibold text-gray-800">
+                {courseName}
+              </span>
+            </div>
             <div className="flex space-x-2">
               {isVideoCallActive && (
                 <button
@@ -378,11 +510,24 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
                   <Video className="w-5 h-5" />
                 </button>
               )}
+              <button 
+                onClick={() => setIsParticipantsModalOpen(true)} 
+                className="p-1 hover:bg-gray-200 rounded-full"
+              >
+                <Users className="w-5 h-5" />
+              </button>
               <button onClick={toggleChat} className="p-1 hover:bg-gray-200 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
+
+          {/* Typing indicator */}
+          {typingUsers.length > 0 && typingUsers.some(u => u.chatId === chatData?._id) && (
+            <div className="text-xs text-gray-600 italic mb-2">
+              {getTypingMessage()}
+            </div>
+          )}
 
           <ParticipantsModal
             isOpen={isParticipantsModalOpen}
@@ -390,50 +535,17 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
             participants={participants} 
           />
 
+          {/* Video call modal */}
           {showVideoModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-4xl">
-                <div className="flex justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Video Call</h3>
-                  <button
-                    onClick={() => {
-                      endVideoCall(chatData?._id || "");
-                      setShowVideoModal(false);
-                    }}
-                    className="text-red-500"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {localStream && (
-                    <div className="relative">
-                      <video
-                        ref={(video) => {
-                          if (video) video.srcObject = localStream;
-                        }}
-                        autoPlay
-                        muted
-                        className="w-full rounded-lg"
-                      />
-                      <p className="absolute bottom-2 left-2 text-white">You</p>
-                    </div>
-                  )}
-                  {remoteStream && (
-                    <div className="relative">
-                      <video
-                        ref={(video) => {
-                          if (video) video.srcObject = remoteStream;
-                        }}
-                        autoPlay
-                        className="w-full rounded-lg"
-                      />
-                      <p className="absolute bottom-2 left-2 text-white">Remote User</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <VideoCallModal
+              localStream={localStream}
+              remoteStream={remoteStream}
+              onEndCall={() => {
+                endVideoCall(chatData?._id || "");
+                setShowVideoModal(false);
+              }}
+              isInstructor={false}
+            />
           )}
 
           <div className="h-80 overflow-y-auto p-2 bg-gray-50/90 rounded scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
