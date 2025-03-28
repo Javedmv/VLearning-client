@@ -79,7 +79,7 @@ const ContactUs: React.FC = () => {
     <div className="min-screen bg-gray-50">
       {/* Header */}
       <Navbar User={user}/>
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-12 px-4">
+      <div className="bg-gradient-to-r from-fuchsia-900 to-fuchsia-600 text-white py-12 px-4">
         <div className="container mx-auto max-w-6xl">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">Contact Us</h1>
           <p className="text-lg max-w-2xl">
@@ -96,7 +96,7 @@ const ContactUs: React.FC = () => {
               <h2 className="text-xl font-semibold mb-4 text-gray-800">Contact Information</h2>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <Mail className="w-5 h-5 text-purple-600 mt-1 mr-3" />
+                  <Mail className="w-5 h-5 text-fuchsia-600 mt-1 mr-3" />
                   <div>
                     <p className="font-medium text-gray-700">Email</p>
                     <a href="mailto:javedfv8@gmail.com" className="text-purple-600 hover:underline">

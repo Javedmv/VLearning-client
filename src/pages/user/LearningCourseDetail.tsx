@@ -4,14 +4,20 @@ import Navbar from '../../components/home/Navbar';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import { commonRequest, URL } from '../../common/api';
-import { config } from '../../common/configurations';
+import { config, pdfConfig } from '../../common/configurations';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import { capitalizeFirstLetter } from '../../common/functions';
 import ShimmerCourseDetail from '../../ShimmerUi/User/ShimmerCourseDetail';
 import ChatBar from "../../components/common/Chat/ChatBar"; // Adjust the path if needed
 import VideoPlayer from '../../components/common/VideoPlayer';
+import Cookies from 'js-cookie';
 
+interface CertificateDownloadParams {
+  enrollmentId: string;
+  user: { username: string };
+  courseTitle: string;
+}
 
 const LearningCourseDetail: React.FC = () => {
   const [currentLessonId, setCurrentLessonId] = useState<string>("");
@@ -38,7 +44,6 @@ const LearningCourseDetail: React.FC = () => {
 
       if (res.data?.[0]) {
         const courseData = res.data[0];
-        console.log(courseData)//TODO: remove this console once finished.
         setCourse(courseData);
         setCurrentLessonId(courseData.progress.currentLesson);
       }
@@ -110,13 +115,73 @@ const LearningCourseDetail: React.FC = () => {
       </div>
     );
   }
-  const downloadCertificate = () => {
+  
+
+  const downloadCertificate = async ({ enrollmentId, user, courseTitle }: CertificateDownloadParams) => {
+    const toastId = toast.loading("Preparing your certificate...");
+  
     try {
-      toast.success("Downloading certificate...");
-    } catch (error) {
-      console.error("ERROR IN DOWNLOAD CERTIFICATE",error)
+      if (!enrollmentId || !user?.username) {
+        throw new Error("Missing required information");
+      }
+  
+      const url = `http://localhost:3000/course/generate-certificate/${enrollmentId}?username=${encodeURIComponent(user.username)}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/pdf',
+        },
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error({
+          401: "Please log in to download your certificate",
+          404: "Course enrollment not found",
+          500: "Server error generating certificate",
+        }[response.status] || errorData.message || "Failed to generate certificate");
+      }
+  
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/pdf')) {
+        throw new Error("Invalid certificate format received");
+      }
+  
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      link.href = downloadUrl;
+      link.download = `${courseTitle}_Certificate_${Date.now()}.pdf`;
+      
+      document.body.appendChild(link);
+      link.click();
+  
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      }, 100);
+  
+      toast.success("Certificate downloaded successfully!");
+  
+    } catch (error: any) {
+      console.error("Certificate Download Error:", error);
+      toast.error(error.message || "Failed to download certificate");
+    } finally {
+      toast.dismiss(toastId);
     }
-  }
+  };
+  
+  // Usage
+  const handleDownload = () => {
+    downloadCertificate({
+      enrollmentId: id!,
+      user: { username: user.username },
+      courseTitle: course.courseId.basicDetails.title,
+    });
+  };
 
   return (
     <>
@@ -150,7 +215,7 @@ const LearningCourseDetail: React.FC = () => {
               {/* Download Certificate Button (Appears Only When Completed) */}
               {course.progress.completedLessons.length === course.courseId.courseContent.lessons.length && (
                 <button
-                  onClick={() => downloadCertificate()} // Function to handle certificate download
+                  onClick={() => handleDownload()} // Function to handle certificate download
                   className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-purple-700 transition"
                 >
                   🎓 Download Certificate

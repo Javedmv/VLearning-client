@@ -21,6 +21,12 @@ export const appJson: AxiosRequestConfig = {
     }
 }
 
+export const pdfConfig: AxiosRequestConfig = {
+    headers: {
+        "Content-Type":"application/pdf",
+    }
+}
+
 export const configMultiPart: AxiosRequestConfig = {
     headers: {
         'Content-Type': 'multipart/form-data'
