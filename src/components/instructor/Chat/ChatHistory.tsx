@@ -8,6 +8,7 @@ import { RootState } from "../../../redux/store";
 import { toast } from "react-hot-toast";
 import ParticipantsModal from "../../common/Chat/ParticipantsModal";
 import VideoCallModal from "../../common/Chat/VideoCallModal";
+import EmojiPicker from 'emoji-picker-react';
 
 enum ContentType {
   TEXT = "text",
@@ -81,6 +82,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     callerId: string;
     callerName: string;
   } | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -395,6 +397,11 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
+  const handleEmojiClick = (emojiData: any) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
   if (!chat?._id) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-200 to-indigo-50">
@@ -595,7 +602,12 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
 
       {/* Message input area */}
       <div className="p-6 bg-white/80 backdrop-blur-sm border-t border-gray-300">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 relative">
+          {showEmojiPicker && (
+            <div className="absolute bottom-16 left-0 z-10">
+              <EmojiPicker onEmojiClick={handleEmojiClick} />
+            </div>
+          )}
           <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
             <Paperclip className="w-6 h-6" />
           </button>
@@ -610,7 +622,10 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
               placeholder="Type your message..."
               className="w-full px-6 py-4 bg-white rounded-full border border-gray-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none text-gray-900 placeholder-gray-400 shadow-sm"
             />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 transition-colors">
+            <button 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 transition-colors"
+            >
               <Smile className="w-6 h-6" />
             </button>
           </div>

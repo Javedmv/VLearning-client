@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users } from "lucide-react";
+import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users, Smile } from "lucide-react";
 import { useSocketContext } from "../../../context/SocketProvider";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
@@ -8,6 +8,7 @@ import { RootState } from "../../../redux/store";
 import toast from "react-hot-toast";
 import ParticipantsModal from "./ParticipantsModal";
 import VideoCallModal from "./VideoCallModal";
+import EmojiPicker from 'emoji-picker-react';
 
 // Content types enum
 enum ContentType {
@@ -74,6 +75,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   const [participants, setParticipants] = useState([]);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isParticipantsModalOpen ,setIsParticipantsModalOpen] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const courseId = enrollment?.courseId?._id;
@@ -468,6 +470,11 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     }
   };
 
+  const handleEmojiClick = (emojiData: any) => {
+    setInput(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-40">
       {/* Only show incoming call notification if not already in a call */}
@@ -661,7 +668,18 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
             <div ref={messagesEndRef} className="pt-2" />
           </div>
 
-          <div className="flex mt-2">
+          <div className="flex mt-2 relative">
+            {showEmojiPicker && (
+              <div className="absolute bottom-14 left-0 z-10">
+                <EmojiPicker onEmojiClick={handleEmojiClick} />
+              </div>
+            )}
+            <button
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="bg-gray-200 text-gray-700 px-3 rounded-l hover:bg-gray-300"
+            >
+              <Smile className="w-5 h-5" />
+            </button>
             <input
               type="text"
               value={input}
@@ -671,7 +689,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
               onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
               onFocus={() => setIsInputFocused(true)}
               onBlur={() => setIsInputFocused(false)}
-              className="flex-1 border border-gray-300 p-2 rounded-l text-sm"
+              className="flex-1 border border-gray-300 p-2 rounded-none text-sm"
               placeholder="Type a message..."
             />
             <button

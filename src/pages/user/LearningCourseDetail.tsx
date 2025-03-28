@@ -306,7 +306,7 @@ const LearningCourseDetail: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div>.
   
       {/* ChatBar Component (Always at the bottom) */}
       <ChatBar enrollment={course}/>
