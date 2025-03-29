@@ -6,6 +6,7 @@ import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import Pagination from '../../components/common/Pagination';
+import { useSocketContext } from '../../context/SocketProvider';
 
 interface Student {
   username: string;
@@ -25,7 +26,7 @@ const Students: React.FC = () => {
   const { user } = useOutletContext<{ user: any }>();
   const [students, setStudents] = useState<Student[]>([]);
   const [meta, setMeta] = useState({page: 1, limit: 6, total: 0, totalPages: 0});
-
+  const { socket } = useSocketContext();
   
   const fetchStudents = async () => {
     try {
@@ -81,6 +82,17 @@ const Students: React.FC = () => {
             : student
           )
         );
+        
+        // If blocking a user, emit socket event to force logout
+        if (shouldBlock && socket) {
+          socket.emit("forceLogout", {
+            userId: studentId,
+            reason: "Your account has been blocked by an administrator."
+          });
+          
+          // Log to confirm the event was emitted
+          console.log(`Emitted forceLogout event for user ${studentId}`);
+        }
       } else {
         toast.error(response?.message);
       }

@@ -4,7 +4,7 @@ import io, { Socket } from "socket.io-client";
 import { AppDispatch, RootState } from "../redux/store";
 import { Message } from "../types/Message";
 import { toast } from "react-hot-toast";
-
+import { logout } from '../redux/actions/user/userAction';
 const SOCKET_URL = import.meta.env.VITE_REACT_APP_CHAT_URL;
 
 interface TypingUser {
@@ -936,6 +936,21 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
   };
 
+  const handleForceLogout = (data: { reason: string }) => {
+    console.log("Force logout received:", data);
+    toast.error(data.reason || "You have been logged out by an administrator");
+    
+    // Dispatch logout action
+    dispatch(logout());
+    
+    // Disconnect socket
+    if (socket) {
+      socket.disconnect();
+    }
+    // Redirect to login page
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     if (!user?._id || !SOCKET_URL || (user.role !== "instructor" && user.role !== "student")) return;
 
@@ -1112,6 +1127,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     newSocket.on("ice-candidate", handleSocketIceCandidate);
     newSocket.on("videoCallEnded", handleVideoCallEnded);
     newSocket.on("userLeftCall", handleUserLeftCall);
+    newSocket.on("forceLogout", handleForceLogout);
 
     return () => {
       newSocket.off("connect", handleConnect);
@@ -1128,6 +1144,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       newSocket.off("ice-candidate", handleSocketIceCandidate);
       newSocket.off("videoCallEnded", handleVideoCallEnded);
       newSocket.off("userLeftCall", handleUserLeftCall);
+      newSocket.off("forceLogout", handleForceLogout);
       newSocket.disconnect();
     };
   }, [user]);

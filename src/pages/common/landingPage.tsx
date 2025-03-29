@@ -14,6 +14,8 @@ const LandingPage:React.FC = () => {
     const {user} = useSelector((state:RootState) => state.user);
     const [highPriorityBanner, setHighPriorityBanner] = useState<Banner[]>([]);
     const [banners, setBanners] = useState<Banner[]>([]);
+    const [courses, setCourses] = useState<any>([]);
+    const [instructors, setInstructors] = useState<any>([]);
 
     // const [myUser, SetMyUser] = useState({})
     // console.log(user, 'user in landing page')
@@ -26,9 +28,25 @@ const LandingPage:React.FC = () => {
             console.error('Failed to fetch banners:', error);
         }
     }
+    const fetchCourses = async () => {
+        try {
+          const response = await commonRequest(
+            "GET",
+            `${URL}/course/landing-page-courses`,
+            {},
+            config
+          );
+          setCourses(response.data.courses);
+          setInstructors(response.data.instructors);
+        } catch (error) {
+          console.error("Failed to fetch courses", error);
+        }
+    };
+    
     
     useEffect(() => {
         fetchBanners();
+        fetchCourses();
     },[])
 
     return (
@@ -38,12 +56,12 @@ const LandingPage:React.FC = () => {
             highPriorityBanner.length > 0 && <Carousel banner={highPriorityBanner} navigationType="dots"/>
         }
         
-        <CourseList/>
+        <CourseList courses={courses}/>
         
         {
             banners.length > 0 && <Carousel banner={banners} navigationType="arrows"/>
         }
-        <InstructorList/>
+        <InstructorList instructors={instructors}/>
         <Footer/>
         </>
     )

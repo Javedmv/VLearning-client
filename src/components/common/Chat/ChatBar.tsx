@@ -10,7 +10,6 @@ import ParticipantsModal from "./ParticipantsModal";
 import VideoCallModal from "./VideoCallModal";
 import EmojiPicker from 'emoji-picker-react';
 
-// Content types enum
 enum ContentType {
   TEXT = "text",
   IMAGE = "image",
@@ -49,7 +48,7 @@ interface ChatMember {
   firstName: string;
   lastName: string;
   profileImage?: string;
-  role: string; // 'student' or 'instructor'
+  role: string;
 }
 
 interface Chat {
@@ -87,7 +86,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     socket,
     onlineUsers,
     messages,
-    typingUsers, // Get typingUsers from context
+    typingUsers,
     joinVideoCall,
     endVideoCall,
     isVideoCallActive,
@@ -200,7 +199,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         console.log("Incoming call:", callData);
         if (callData.callerId !== user._id && !incomingCall) {
           setIncomingCall(callData);
-          // Use a valid audio URL that's guaranteed to work
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2355/2355-preview.mp3');
           audio.loop = true;
           audio.play().catch(error => console.error('Error playing ringtone:', error));
@@ -208,23 +206,18 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         }
       };
 
-      // Handle call acceptance - only join once
       const handleCallAccepted = (data: { chatId: string; accepterId: string }) => {
         console.log("Call accepted:", data);
-        // Stop ringtone if playing
         if ((window as any).incomingCallAudio) {
           (window as any).incomingCallAudio.pause();
           (window as any).incomingCallAudio = null;
         }
         
-        // Clear incoming call notification
         setIncomingCall(null);
         
         if (data.chatId === chatData?._id) {
-          // Only show video modal if not already showing
           if (!showVideoModal) {
             setShowVideoModal(true);
-            // Only join if I'm the one who accepted
             if (data.accepterId === user._id) {
               joinVideoCall(chatData._id);
             }
@@ -283,7 +276,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     }
   }, [socket, chatData?._id, user._id]);
 
-  // Typing emission
   useEffect(() => {
     let typingInterval: NodeJS.Timeout | null = null;
 
