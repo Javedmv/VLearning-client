@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Smile, Paperclip, Video, X } from "lucide-react";
+import { Send, Smile, Paperclip, Video, X, Cast } from "lucide-react";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
 import { useSelector } from "react-redux";
@@ -8,6 +8,7 @@ import { RootState } from "../../../redux/store";
 import { toast } from "react-hot-toast";
 import ParticipantsModal from "../../common/Chat/ParticipantsModal";
 import VideoCallModal from "../../common/Chat/VideoCallModal";
+import StreamingModal from "../../common/Chat/StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
 
 enum ContentType {
@@ -68,6 +69,12 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     typingUsers,
     handleTyping,
     joinVideoCall,
+    // Stream props
+    initiateStream,
+    endStream,
+    isStreaming,
+    streamViewers,
+    streamViewerNames,
   } = useSocketContext();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -75,6 +82,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   const [loading, setLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showStreamingModal, setShowStreamingModal] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{
@@ -367,13 +375,40 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }));
   };
 
+  // Clean up video call resources when component unmounts
   useEffect(() => {
     return () => {
       if (isVideoCallActive) {
         endVideoCall(chat._id);
       }
+      if (isStreaming) {
+        endStream(chat._id);
+      }
     };
   }, []);
+
+  const handleStartStream = () => {
+    if (isStreaming) {
+      // Only end the stream if we're the one streaming
+      endStream(chat._id);
+      setShowStreamingModal(false);
+    } else {
+      // Check if we're already in a video call before starting stream
+      if (isVideoCallActive) {
+        toast.error("Please end the video call before starting a stream");
+        return;
+      }
+      
+      try {
+        initiateStream(chat._id);
+        setShowStreamingModal(true);
+      } catch (error) {
+        console.error("Error starting stream:", error);
+        toast.error("Failed to start stream. Please try again.");
+        setShowStreamingModal(false);
+      }
+    }
+  };
 
   const handleAcceptCall = () => {
     if (incomingCall && socket) {
@@ -442,6 +477,17 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           >
             <Video className="w-6 h-6" />
           </button>
+          {user.role === "instructor" && (
+            <button
+              onClick={handleStartStream}
+              className={`p-2 transition-colors ${
+                isStreaming ? "text-red-500 hover:text-red-700" : "text-gray-500 hover:text-gray-700"
+              }`}
+              title={isStreaming ? "End Live Stream" : "Start Live Stream"}
+            >
+              <Cast className="w-6 h-6" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -460,6 +506,18 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           onEndCall={() => {
             endVideoCall(chat._id);
             setShowVideoModal(false);
+          }}
+          isInstructor={true}
+        />
+      )}
+
+      {/* Streaming modal */}
+      {showStreamingModal && (
+        <StreamingModal
+          chatId={chat._id}
+          onClose={() => {
+            endStream(chat._id);
+            setShowStreamingModal(false);
           }}
           isInstructor={true}
         />

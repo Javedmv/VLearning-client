@@ -46,6 +46,14 @@ interface SocketContextType {
   callStatus: 'idle' | 'connecting' | 'connected' | 'failed' | 'ended';
   callParticipants: string[];
   cleanupAllPeerConnections: () => void;
+  // Streaming properties
+  streamViewers: string[];
+  streamViewerNames: { [userId: string]: string };
+  isStreaming: boolean;
+  initiateStream: (chatId: string) => Promise<void>;
+  joinStream: (chatId: string) => Promise<void>;
+  endStream: (chatId: string) => void;
+  leaveStream: (chatId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -74,6 +82,14 @@ const SocketContext = createContext<SocketContextType>({
   callStatus: 'idle',
   callParticipants: [],
   cleanupAllPeerConnections: () => {},
+  // Streaming properties
+  streamViewers: [],
+  streamViewerNames: {},
+  isStreaming: false,
+  initiateStream: async () => {},
+  joinStream: async () => {},
+  endStream: () => {},
+  leaveStream: () => {},
 });
 
 export const useSocketContext = (): SocketContextType => {
@@ -101,6 +117,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [peerConnections, setPeerConnections] = useState<Map<string, PeerConnection>>(new Map());
   const [callStatus, setCallStatus] = useState<'idle' | 'connecting' | 'connected' | 'failed' | 'ended'>('idle');
   const [callParticipants, setCallParticipants] = useState<string[]>([]);
+  
+  // Streaming state variables
+  const [streamViewers, setStreamViewers] = useState<string[]>([]);
+  const [streamViewerNames, setStreamViewerNames] = useState<{ [userId: string]: string }>({});
+  const [isStreaming, setIsStreaming] = useState(false);
   
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   
@@ -1113,6 +1134,78 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
     };
 
+    const handleStreamStarted = (data: { chatId: string, streamerId: string, streamerName: string }) => {
+      console.log("Stream started:", data);
+      // Only show toast for students, not for the instructor who initiated the stream
+      if (user?.role === "student" && data.streamerId !== user?._id && !isStreaming) {
+        toast.success(`${data.streamerName} started a live stream`);
+      }
+    };
+
+    const handleUserJoinedStream = (data: { chatId: string, userId: string, username: string }) => {
+      console.log(`User joined stream: ${data.username} (${data.userId})`);
+      
+      if (data.chatId === currentChatId && isStreaming) {
+        // Only update the viewer lists if this is a new viewer
+        setStreamViewers(prev => {
+          if (!prev.includes(data.userId)) {
+            return [...prev, data.userId];
+          }
+          return prev;
+        });
+        
+        setStreamViewerNames(prev => ({
+          ...prev,
+          [data.userId]: data.username
+        }));
+        
+        // Only show toast if we're the instructor (prevent duplicate toasts)
+        if (user?.role === 'instructor' && user?._id !== data.userId && !streamViewers.includes(data.userId)) {
+          toast.success(`${data.username} joined the stream`);
+        }
+      }
+    };
+
+    const handleUserLeftStream = (data: { chatId: string, userId: string, username: string }) => {
+      console.log(`User left stream: ${data.username} (${data.userId})`);
+      
+      if (data.chatId === currentChatId && isStreaming) {
+        setStreamViewers(prev => prev.filter(id => id !== data.userId));
+        setStreamViewerNames(prev => {
+          const updated = {...prev};
+          delete updated[data.userId];
+          return updated;
+        });
+        
+        // Only show toast if we're the instructor (prevent duplicate toasts)
+        if (user?.role === 'instructor' && user?._id !== data.userId) {
+          toast.success(`${data.username} left the stream`);
+        }
+      }
+    };
+
+    const handleStreamEnded = (data: { chatId: string, userId: string, streamerName: string }) => {
+      console.log("Stream ended:", data);
+      
+      if (data.chatId === currentChatId) {
+        if (data.userId !== user?._id) {
+          toast.success(`${data.streamerName} ended the stream`);
+        }
+        
+        // Clean up
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+          setLocalStream(null);
+        }
+        
+        setCallStatus('idle');
+        setIsStreaming(false);
+        setCurrentChatId(null);
+        setStreamViewers([]);
+        setStreamViewerNames({});
+      }
+    };
+
     newSocket.on("connect", handleConnect);
     newSocket.on("disconnect", handleDisconnect);
     newSocket.on("getOnlineUsers", handleOnlineUsers);
@@ -1128,24 +1221,36 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     newSocket.on("videoCallEnded", handleVideoCallEnded);
     newSocket.on("userLeftCall", handleUserLeftCall);
     newSocket.on("forceLogout", handleForceLogout);
+    
+    // Streaming events
+    newSocket.on("streamStarted", handleStreamStarted);
+    newSocket.on("userJoinedStream", handleUserJoinedStream);
+    newSocket.on("userLeftStream", handleUserLeftStream);
+    newSocket.on("streamEnded", handleStreamEnded);
 
     return () => {
-      newSocket.off("connect", handleConnect);
-      newSocket.off("disconnect", handleDisconnect);
-      newSocket.off("getOnlineUsers", handleOnlineUsers);
-      newSocket.off("receiveMessage", handleIncomingMessage);
-      newSocket.off("userTyping", handleUserTyping);
-      newSocket.off("incomingCall", handleIncomingCall);
-      newSocket.off("callAccepted", handleCallAccepted);
-      newSocket.off("callRejected", handleCallRejected);
-      newSocket.off("userJoinedCall", handleUserJoinedCall);
-      newSocket.off("offer", handleSocketOffer);
-      newSocket.off("answer", handleSocketAnswer);
-      newSocket.off("ice-candidate", handleSocketIceCandidate);
-      newSocket.off("videoCallEnded", handleVideoCallEnded);
-      newSocket.off("userLeftCall", handleUserLeftCall);
-      newSocket.off("forceLogout", handleForceLogout);
-      newSocket.disconnect();
+      if (newSocket) {
+        newSocket.off("connect", handleConnect);
+        newSocket.off("disconnect", handleDisconnect);
+        newSocket.off("getOnlineUsers", handleOnlineUsers);
+        newSocket.off("receiveMessage", handleIncomingMessage);
+        newSocket.off("userTyping", handleUserTyping);
+        newSocket.off("incomingCall", handleIncomingCall);
+        newSocket.off("callAccepted", handleCallAccepted);
+        newSocket.off("callRejected", handleCallRejected);
+        newSocket.off("userJoinedCall", handleUserJoinedCall);
+        newSocket.off("offer", handleSocketOffer);
+        newSocket.off("answer", handleSocketAnswer);
+        newSocket.off("ice-candidate", handleSocketIceCandidate);
+        newSocket.off("videoCallEnded", handleVideoCallEnded);
+        newSocket.off("userLeftCall", handleUserLeftCall);
+        newSocket.off("forceLogout", handleForceLogout);
+        newSocket.off("streamStarted", handleStreamStarted);
+        newSocket.off("userJoinedStream", handleUserJoinedStream);
+        newSocket.off("userLeftStream", handleUserLeftStream);
+        newSocket.off("streamEnded", handleStreamEnded);
+        newSocket.disconnect();
+      }
     };
   }, [user]);
 
@@ -1214,6 +1319,180 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     toast.success("Attempting to reconnect to call...");
   };
 
+  // Instructor-only: Start a live stream
+  const initiateStream = async (chatId: string) => {
+    try {
+      // Check if user has necessary permissions
+      const hasPermissions = await checkMediaPermissions();
+      if (!hasPermissions) return;
+
+      // Clean up any existing streams
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+      }
+      
+      // Clear any existing peer connections
+      cleanupAllPeerConnections();
+
+      // Set status to connecting
+      setCallStatus('connecting');
+      
+      // Get user media
+      const stream = await getUserMedia();
+      
+      // Make sure we have video
+      if (!stream.getVideoTracks().length) {
+        toast.error("Unable to access camera. Video stream is required for streaming.");
+        throw new Error("Video stream required");
+      }
+      
+      setLocalStream(stream);
+      setCurrentChatId(chatId);
+
+      // Notify server about stream start
+      if (socket) {
+        socket.emit("initiateStream", {
+          chatId,
+          streamerId: user?._id,
+          streamerName: user?.username || `${user?.firstName} ${user?.lastName}`
+        });
+      }
+
+      // Update state
+      setIsStreaming(true);
+      setStreamViewers([]);
+      setStreamViewerNames({});
+      
+      // Update call status when stream is ready
+      setTimeout(() => {
+        setCallStatus('connected')
+        toast.success("Live stream started successfully. Students can now join.");
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Error initiating stream:", error);
+      toast.error("Failed to start stream. Please check your camera and microphone.");
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+      }
+      setIsStreaming(false);
+      setCallStatus('failed');
+    }
+  };
+
+  // Student-only: Join a live stream
+  const joinStream = async (chatId: string) => {
+    try {
+      setCallStatus('connecting');
+      setCurrentChatId(chatId);
+      
+      // For students watching a stream, we need to request permissions 
+      // to avoid browser blocking video playback
+      try {
+        // Request a minimal stream with only audio
+        // This is needed to get browser permissions for autoplay
+        const dummyStream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: true
+        });
+        
+        // Immediately disable the audio track so it doesn't actually use the mic
+        dummyStream.getAudioTracks().forEach(track => {
+          track.enabled = false;
+        });
+        
+        // Use this stream for the local reference
+        setLocalStream(dummyStream);
+      } catch (mediaError) {
+        console.log("Could not access microphone, creating empty stream", mediaError);
+        // If we can't get audio, create an empty stream as fallback
+        const emptyStream = new MediaStream();
+        setLocalStream(emptyStream);
+      }
+      
+      // Join stream room
+      socket?.emit("joinStream", { 
+        chatId, 
+        userId: user?._id,
+        username: user?.username || `${user?.firstName} ${user?.lastName}`
+      });
+      
+      // Set connected state
+      setCallStatus('connected');
+      
+    } catch (error) {
+      console.error("Error joining stream:", error);
+      setCallStatus('failed');
+      toast.error("Failed to join stream. Please try again.");
+    }
+  };
+
+  // Leave a stream (student)
+  const leaveStream = (chatId: string) => {
+    try {
+      // Clean up media
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+      }
+
+      // Notify server
+      if (socket && chatId) {
+        socket.emit("leaveStream", { 
+          chatId, 
+          userId: user?._id,
+          username: user?.username || `${user?.firstName} ${user?.lastName}`
+        });
+      }
+
+      // Reset state
+      setCurrentChatId(null);
+      setCallStatus('idle');
+      
+    } catch (error) {
+      console.error("Error leaving stream:", error);
+    }
+  };
+
+  // End a stream (instructor)
+  const endStream = (chatId: string) => {
+    try {
+      setCallStatus('ended');
+      
+      // Clean up media
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+      }
+
+      // Notify server
+      if (socket && chatId) {
+        socket.emit("endStream", { 
+          chatId, 
+          userId: user?._id,
+          role: user?.role
+        });
+      }
+
+      // Reset state
+      setIsStreaming(false);
+      setCurrentChatId(null);
+      setStreamViewers([]);
+      setStreamViewerNames({});
+      
+      // Clean up peer connections
+      cleanupAllPeerConnections();
+      
+      toast.success("Stream ended successfully");
+      
+    } catch (error) {
+      console.error("Error ending stream:", error);
+      toast.error("Failed to end stream properly");
+    }
+  };
+
   const contextValues: SocketContextType = {
     socket,
     messages,
@@ -1240,6 +1519,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     callStatus,
     callParticipants,
     cleanupAllPeerConnections,
+    // Streaming properties
+    streamViewers,
+    streamViewerNames,
+    isStreaming,
+    initiateStream,
+    joinStream,
+    endStream,
+    leaveStream,
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users, Smile } from "lucide-react";
+import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users, Smile, Cast } from "lucide-react";
 import { useSocketContext } from "../../../context/SocketProvider";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
@@ -8,6 +8,7 @@ import { RootState } from "../../../redux/store";
 import toast from "react-hot-toast";
 import ParticipantsModal from "./ParticipantsModal";
 import VideoCallModal from "./VideoCallModal";
+import StreamingModal from "./StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
 
 enum ContentType {
@@ -94,15 +95,29 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     remoteStream,
     setIsVideoCallActive,
     handleTyping,
+    streamViewers,
+    streamViewerNames,
+    isStreaming,
+    initiateStream,
+    joinStream,
+    endStream,
+    leaveStream,
   } = useSocketContext();
 
   const [isSending, setIsSending] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showStreamingModal, setShowStreamingModal] = useState(false);
 
   const [incomingCall, setIncomingCall] = useState<{
     chatId: string;
     callerId: string;
     callerName: string;
+  } | null>(null);
+
+  const [streamNotification, setStreamNotification] = useState<{
+    chatId: string;
+    streamerId: string;
+    streamerName: string;
   } | null>(null);
 
   useEffect(() => {
@@ -254,6 +269,32 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         toast.success("Video call ended.");
       };
 
+      const handleStreamStarted = (data: { chatId: string; streamerId: string; streamerName: string }) => {
+        if (data.streamerId !== user._id && data.chatId === chatData?._id) {
+          // Clear any existing notification first
+          setStreamNotification(null);
+          
+          // Then set the new notification after a short delay
+          setTimeout(() => {
+            setStreamNotification(data);
+            toast.success(`${data.streamerName} started a live stream`);
+          }, 100);
+        }
+      };
+
+      const handleStreamEnded = (data: { chatId: string; userId: string; streamerName: string }) => {
+        if (data.chatId === chatData?._id) {
+          // Close the streaming modal if it's open
+          setShowStreamingModal(false);
+          
+          // Clear the notification after a short delay to avoid state update conflicts
+          setTimeout(() => {
+            setStreamNotification(null);
+            toast.success(`Live stream ended by ${data.streamerName}`);
+          }, 100);
+        }
+      };
+
       socket.on("message", handleNewMessage);
       socket.on("messageSent", handleMessageSent);
       socket.on("messageError", handleMessageError);
@@ -262,6 +303,8 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
       socket.off("callRejected").on("callRejected", handleCallRejected);
       socket.off("videoCallStarted").on("videoCallStarted", handleVideoCallStarted);
       socket.off("videoCallEnded").on("videoCallEnded", handleVideoCallEnded);
+      socket.off("streamStarted").on("streamStarted", handleStreamStarted);
+      socket.off("streamEnded").on("streamEnded", handleStreamEnded);
 
       return () => {
         socket.off("message", handleNewMessage);
@@ -272,6 +315,8 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         socket.off("callRejected", handleCallRejected);
         socket.off("videoCallStarted", handleVideoCallStarted);
         socket.off("videoCallEnded", handleVideoCallEnded);
+        socket.off("streamStarted", handleStreamStarted);
+        socket.off("streamEnded", handleStreamEnded);
       };
     }
   }, [socket, chatData?._id, user._id]);
@@ -491,6 +536,34 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         </div>
       )}
 
+      {/* Streaming notification */}
+      {streamNotification && !showStreamingModal && (
+        <div className="fixed top-4 right-4 z-50 bg-white p-4 rounded-lg shadow-xl max-w-sm">
+          <h3 className="text-lg font-semibold mb-2">Live Stream</h3>
+          <p className="mb-4">{streamNotification.streamerName} is streaming...</p>
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={() => setShowStreamingModal(false)}
+              className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+            >
+              Ignore
+            </button>
+            <button
+              onClick={() => {
+                if (!showStreamingModal && streamNotification) {
+                  // Only try to join if not already in a streaming session
+                  joinStream(streamNotification.chatId);
+                  setShowStreamingModal(true);
+                }
+              }}
+              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+            >
+              Join Stream
+            </button>
+          </div>
+        </div>
+      )}
+
       {isOpen && (
         <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-gray-400/80 shadow-lg rounded-lg p-4 border border-gray-300 transition-all duration-300">
           {/* Chat header */}
@@ -507,6 +580,21 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
                   className="p-1 hover:bg-gray-200 rounded-full"
                 >
                   <Video className="w-5 h-5" />
+                </button>
+              )}
+              {streamNotification && (
+                <button
+                  onClick={() => {
+                    if (!showStreamingModal && streamNotification) {
+                      // Only try to join if not already in a streaming session
+                      joinStream(streamNotification.chatId);
+                      setShowStreamingModal(true);
+                    }
+                  }}
+                  className="p-1 hover:bg-gray-200 rounded-full text-red-500"
+                  title="Join Live Stream"
+                >
+                  <Cast className="w-5 h-5" />
                 </button>
               )}
               <button 
@@ -542,6 +630,18 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
               onEndCall={() => {
                 endVideoCall(chatData?._id || "");
                 setShowVideoModal(false);
+              }}
+              isInstructor={false}
+            />
+          )}
+
+          {/* Streaming modal */}
+          {showStreamingModal && streamNotification && (
+            <StreamingModal
+              chatId={streamNotification.chatId}
+              onClose={() => {
+                leaveStream(streamNotification.chatId);
+                setShowStreamingModal(false);
               }}
               isInstructor={false}
             />

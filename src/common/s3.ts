@@ -20,6 +20,7 @@ export const uploadLessonsToS3 = async (courseData: CourseData) => {
   try {
     // Upload thumbnail to S3
     const { thumbnail, title } = courseData.basicDetails;
+    console.log("thumbnail", thumbnail, "for megana");
     if (!thumbnail) {
       throw new Error("No thumbnail file provided for the course.");
     }
