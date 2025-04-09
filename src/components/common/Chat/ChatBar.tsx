@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Image, FileText, Video, Mic, Users, Smile, Cast } from "lucide-react";
+import { MessageCircle, X, Send, Image, FileText, Mic, Users, Smile, Cast } from "lucide-react";
 import { useSocketContext } from "../../../context/SocketProvider";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
@@ -7,7 +7,6 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../../redux/store";
 import toast from "react-hot-toast";
 import ParticipantsModal from "./ParticipantsModal";
-import VideoCallModal from "./VideoCallModal";
 import StreamingModal from "./StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
 
@@ -85,34 +84,17 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
   const {
     socket,
-    onlineUsers,
-    messages,
-    typingUsers,
-    joinVideoCall,
-    endVideoCall,
-    isVideoCallActive,
-    localStream,
-    remoteStream,
-    setIsVideoCallActive,
-    handleTyping,
     streamViewers,
     streamViewerNames,
     isStreaming,
-    initiateStream,
     joinStream,
-    endStream,
     leaveStream,
+    handleTyping,
+    typingUsers,
   } = useSocketContext();
 
   const [isSending, setIsSending] = useState(false);
-  const [showVideoModal, setShowVideoModal] = useState(false);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
-
-  const [incomingCall, setIncomingCall] = useState<{
-    chatId: string;
-    callerId: string;
-    callerName: string;
-  } | null>(null);
 
   const [streamNotification, setStreamNotification] = useState<{
     chatId: string;
@@ -209,112 +191,43 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         toast.error("Failed to send message. Please try again.");
       };
 
-      // Handle incoming call notification
-      const handleIncomingCall = (callData: { chatId: string; callerId: string; callerName: string }) => {
-        console.log("Incoming call:", callData);
-        if (callData.callerId !== user._id && !incomingCall) {
-          setIncomingCall(callData);
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2355/2355-preview.mp3');
-          audio.loop = true;
-          audio.play().catch(error => console.error('Error playing ringtone:', error));
-          (window as any).incomingCallAudio = audio;
-        }
-      };
-
-      const handleCallAccepted = (data: { chatId: string; accepterId: string }) => {
-        console.log("Call accepted:", data);
-        if ((window as any).incomingCallAudio) {
-          (window as any).incomingCallAudio.pause();
-          (window as any).incomingCallAudio = null;
-        }
-        
-        setIncomingCall(null);
-        
-        if (data.chatId === chatData?._id) {
-          if (!showVideoModal) {
-            setShowVideoModal(true);
-            if (data.accepterId === user._id) {
-              joinVideoCall(chatData._id);
-            }
-          }
-        }
-      };
-
-      const handleCallRejected = (data: { chatId: string; rejecterId: string }) => {
-        console.log("Call rejected:", data);
-        // Stop ringtone if it's playing
-        if ((window as any).incomingCallAudio) {
-          (window as any).incomingCallAudio.pause();
-          (window as any).incomingCallAudio = null;
-        }
-        if (data.chatId === chatData._id) {
-          setIncomingCall(null);
-          if (data.rejecterId === user._id) {
-            toast.error("You declined the call");
-          } else {
-            toast.error("Call was declined by another participant");
-          }
-        }
-      };
-
-      const handleVideoCallStarted = () => {
-        setIsVideoCallActive(true);
-        toast.success("Video call started. Join now!");
-      };
-
-      const handleVideoCallEnded = () => {
-        setIsVideoCallActive(false);
-        setShowVideoModal(false);
-        setIncomingCall(null);
-        toast.success("Video call ended.");
-      };
-
       const handleStreamStarted = (data: { chatId: string; streamerId: string; streamerName: string }) => {
-        if (data.streamerId !== user._id && data.chatId === chatData?._id) {
-          // Clear any existing notification first
-          setStreamNotification(null);
-          
-          // Then set the new notification after a short delay
-          setTimeout(() => {
-            setStreamNotification(data);
-            toast.success(`${data.streamerName} started a live stream`);
-          }, 100);
+        console.log("Stream notification:", data);
+        if (data.chatId === chatData?._id && !isStreaming && data.streamerId !== user?._id) {
+          setStreamNotification({
+            chatId: data.chatId,
+            streamerId: data.streamerId,
+            streamerName: data.streamerName,
+          });
+          toast.success(`${data.streamerName} started a live stream`);
         }
       };
 
       const handleStreamEnded = (data: { chatId: string; userId: string; streamerName: string }) => {
+        console.log("Stream ended:", data);
         if (data.chatId === chatData?._id) {
-          // Close the streaming modal if it's open
-          setShowStreamingModal(false);
+          setStreamNotification(null);
           
-          // Clear the notification after a short delay to avoid state update conflicts
-          setTimeout(() => {
-            setStreamNotification(null);
-            toast.success(`Live stream ended by ${data.streamerName}`);
-          }, 100);
+          if (isStreaming) {
+            setShowStreamingModal(false);
+          }
+          
+          if (data.userId !== user?._id) {
+            toast.success(`${data.streamerName} ended the stream`);
+          }
         }
       };
 
       socket.on("message", handleNewMessage);
       socket.on("messageSent", handleMessageSent);
       socket.on("messageError", handleMessageError);
-      socket.off("incomingCall").on("incomingCall", handleIncomingCall);
-      socket.off("callAccepted").on("callAccepted", handleCallAccepted);
-      socket.off("callRejected").on("callRejected", handleCallRejected);
-      socket.off("videoCallStarted").on("videoCallStarted", handleVideoCallStarted);
-      socket.off("videoCallEnded").on("videoCallEnded", handleVideoCallEnded);
-      socket.off("streamStarted").on("streamStarted", handleStreamStarted);
-      socket.off("streamEnded").on("streamEnded", handleStreamEnded);
+      socket.on("streamStarted", handleStreamStarted);
+      socket.on("streamEnded", handleStreamEnded);
 
       return () => {
         socket.off("message", handleNewMessage);
         socket.off("messageSent", handleMessageSent);
         socket.off("messageError", handleMessageError);
-        socket.off("incomingCall", handleIncomingCall);
-        socket.off("callAccepted", handleCallAccepted);
-        socket.off("callRejected", handleCallRejected);
-        socket.off("videoCallStarted", handleVideoCallStarted);
-        socket.off("videoCallEnded", handleVideoCallEnded);
         socket.off("streamStarted", handleStreamStarted);
         socket.off("streamEnded", handleStreamEnded);
       };
@@ -364,7 +277,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages, messages]);
+  }, [chatMessages]);
 
   useEffect(() => {
     if (messagesEndRef.current && isOpen) {
@@ -379,7 +292,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
       case ContentType.AUDIO:
         return <Mic className="w-4 h-4 mr-1" />;
       case ContentType.VIDEO:
-        return <Video className="w-4 h-4 mr-1" />;
+        return <Mic className="w-4 h-4 mr-1" />;
       case ContentType.FILE:
         return <FileText className="w-4 h-4 mr-1" />;
       default:
@@ -406,12 +319,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     return "Unknown User";
   };
 
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
-    }
-  }, [messages]);
-
   const formatMessageDate = (dateString: string | Date) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -436,59 +343,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     return senderId === user._id;
   };
 
-  // Add handlers for accepting and rejecting calls
-  const handleAcceptCall = () => {
-    if (incomingCall && socket) {
-      // Stop ringtone if it's playing
-      if ((window as any).incomingCallAudio) {
-        (window as any).incomingCallAudio.pause();
-        (window as any).incomingCallAudio = null;
-      }
-      
-      socket.emit("acceptCall", { 
-        chatId: incomingCall.chatId,
-        accepterId: user._id 
-      });
-      
-      setIncomingCall(null);
-      setShowVideoModal(true);
-      
-      // Add a small delay before joining the call to ensure UI is ready
-      setTimeout(() => {
-        joinVideoCall(incomingCall.chatId);
-      }, 500);
-    }
-  };
-
-  const handleRejectCall = () => {
-    if (incomingCall && socket) {
-      socket.emit("rejectCall", { 
-        chatId: incomingCall.chatId,
-        rejecterId: user._id 
-      });
-      setIncomingCall(null);
-      // Stop ringtone if it's playing
-      if ((window as any).incomingCallAudio) {
-        (window as any).incomingCallAudio.pause();
-        (window as any).incomingCallAudio = null;
-      }
-    }
-  };
-
-  // Clean up video call resources when component unmounts
-  useEffect(() => {
-    return () => {
-      if (isVideoCallActive && chatData?._id) {
-        endVideoCall(chatData._id);
-      }
-      // Stop ringtone if it's playing
-      if ((window as any).incomingCallAudio) {
-        (window as any).incomingCallAudio.pause();
-        (window as any).incomingCallAudio = null;
-      }
-    };
-  }, []);
-
   // Construct the typing message using typingUsers from context
   const getTypingMessage = () => {
     const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chatData?._id);
@@ -499,14 +353,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     return `${currentChatTypingUsers.length} people are typing...`;
   };
 
-  // Handle joining a video call - prevent duplicate joins
-  const handleJoinVideoCall = () => {
-    if (chatData?._id && !showVideoModal) {
-      joinVideoCall(chatData._id);
-      setShowVideoModal(true);
-    }
-  };
-
   const handleEmojiClick = (emojiData: any) => {
     setInput(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
@@ -514,28 +360,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
   return (
     <div className="fixed bottom-4 right-4 z-40">
-      {/* Only show incoming call notification if not already in a call */}
-      {incomingCall && !showVideoModal && (
-        <div className="fixed top-4 right-4 z-50 bg-white p-4 rounded-lg shadow-xl max-w-sm">
-          <h3 className="text-lg font-semibold mb-2">Incoming Call</h3>
-          <p className="mb-4">{incomingCall.callerName} is calling...</p>
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={handleRejectCall}
-              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-            >
-              Decline
-            </button>
-            <button
-              onClick={handleAcceptCall}
-              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-            >
-              Accept
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Streaming notification */}
       {streamNotification && !showStreamingModal && (
         <div className="fixed top-4 right-4 z-50 bg-white p-4 rounded-lg shadow-xl max-w-sm">
@@ -543,7 +367,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
           <p className="mb-4">{streamNotification.streamerName} is streaming...</p>
           <div className="flex justify-end space-x-2">
             <button
-              onClick={() => setShowStreamingModal(false)}
+              onClick={() => setStreamNotification(null)}
               className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
             >
               Ignore
@@ -574,29 +398,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
               </span>
             </div>
             <div className="flex space-x-2">
-              {isVideoCallActive && (
-                <button
-                  onClick={handleJoinVideoCall}
-                  className="p-1 hover:bg-gray-200 rounded-full"
-                >
-                  <Video className="w-5 h-5" />
-                </button>
-              )}
-              {streamNotification && (
-                <button
-                  onClick={() => {
-                    if (!showStreamingModal && streamNotification) {
-                      // Only try to join if not already in a streaming session
-                      joinStream(streamNotification.chatId);
-                      setShowStreamingModal(true);
-                    }
-                  }}
-                  className="p-1 hover:bg-gray-200 rounded-full text-red-500"
-                  title="Join Live Stream"
-                >
-                  <Cast className="w-5 h-5" />
-                </button>
-              )}
               <button 
                 onClick={() => setIsParticipantsModalOpen(true)} 
                 className="p-1 hover:bg-gray-200 rounded-full"
@@ -621,19 +422,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
             onClose={() => setIsParticipantsModalOpen(false)}
             participants={participants} 
           />
-
-          {/* Video call modal */}
-          {showVideoModal && (
-            <VideoCallModal
-              localStream={localStream}
-              remoteStream={remoteStream}
-              onEndCall={() => {
-                endVideoCall(chatData?._id || "");
-                setShowVideoModal(false);
-              }}
-              isInstructor={false}
-            />
-          )}
 
           {/* Streaming modal */}
           {showStreamingModal && streamNotification && (

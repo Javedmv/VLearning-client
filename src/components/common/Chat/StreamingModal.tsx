@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, X } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, X, Bell } from "lucide-react";
 import { useSocketContext } from "../../../contexts/SocketContext";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../redux/store";
@@ -110,20 +110,27 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
   // Update local video stream
   useEffect(() => {
     if (localVideoRef.current && localStream) {
+      console.log(`Setting video source object. Is instructor: ${isInstructor}`);
       localVideoRef.current.srcObject = localStream;
       
       // Handle autoplay issues
       localVideoRef.current.play().catch(e => {
-        console.error("Error auto-playing local video:", e);
+        console.error("Error auto-playing video:", e);
         // Try playing on user interaction
         const playOnInteraction = () => {
           if (localVideoRef.current) {
-            localVideoRef.current.play();
+            console.log("Attempting to play video on user interaction");
+            localVideoRef.current.play().catch(error => {
+              console.error("Failed to play video on interaction:", error);
+              toast.error("Could not play video. Try clicking the Play Video button.");
+            });
           }
           document.removeEventListener('click', playOnInteraction);
         };
         document.addEventListener('click', playOnInteraction);
       });
+    } else if (!localStream) {
+      console.log("No localStream available yet");
     }
   }, [localStream]);
 
@@ -158,6 +165,18 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
     }
   };
 
+  // Function to notify all students about the stream
+  const notifyStudents = () => {
+    if (socket && isInstructor) {
+      socket.emit('recallStudents', {
+        chatId,
+        streamerId: user?._id,
+        streamerName: user?.username || 'Instructor'
+      });
+      toast.success('Notification sent to all students in this chat');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
       <div className="flex justify-between items-center p-4 bg-gray-800 text-white">
@@ -180,6 +199,13 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
                 title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
               >
                 {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={notifyStudents}
+                className="p-2 rounded-full bg-blue-600 hover:bg-blue-700"
+                title="Notify all students about this stream"
+              >
+                <Bell className="w-5 h-5" />
               </button>
             </>
           )}
@@ -229,13 +255,46 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
             // Students see instructor's video
             <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
               {localStream ? (
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted={!isInstructor} // Mute for students to prevent feedback
-                  className="rounded-lg w-full h-full object-cover"
-                />
+                <>
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    className="rounded-lg w-full h-full object-cover"
+                  />
+                  {/* Add controls for debugging */}
+                  <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded">
+                    <p>Stream active: {localStream.active ? 'Yes' : 'No'}</p>
+                    <p>Video tracks: {localStream.getVideoTracks().length}</p>
+                    <p>Audio tracks: {localStream.getAudioTracks().length}</p>
+                    <div className="mt-2 flex space-x-2">
+                      <button 
+                        onClick={() => {
+                          if (localVideoRef.current) {
+                            localVideoRef.current.play().catch(e => {
+                              console.error("Error playing video:", e);
+                              toast.error("Error playing video. Please try refreshing the page.");
+                            });
+                          }
+                        }}
+                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        Play Video
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Re-join the stream to force reconnection
+                          leaveStream(chatId);
+                          setTimeout(() => joinStream(chatId), 1000);
+                          toast.success("Attempting to reconnect...");
+                        }}
+                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                      >
+                        Reconnect
+                      </button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="text-center">
                   <p className="text-white text-xl mb-2">
@@ -243,7 +302,23 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
                       ? "Waiting for instructor's video..." 
                       : "Connecting to instructor's stream..."}
                   </p>
-                  {callStatus === 'connected' && (
+                  <p className="text-white text-sm mb-4">Connection status: {callStatus}</p>
+                  <div className="bg-black/50 p-3 rounded mb-4 max-w-md mx-auto">
+                    <p className="text-white text-sm text-left mb-2">Connection Diagnostics:</p>
+                    <ul className="text-white text-xs text-left list-disc list-inside space-y-1">
+                      <li>Chat ID: {chatId}</li>
+                      <li>Socket Connected: {socket ? "Yes" : "No"}</li>
+                      <li>User ID Available: {user?._id ? "Yes" : "No"}</li>
+                      <li>Streaming: {isStreaming ? "Yes" : "No"}</li>
+                      <li>Status: {callStatus}</li>
+                    </ul>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-ping" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                  {callStatus === 'connected' || callStatus === 'connecting' ? (
                     <button 
                       onClick={() => {
                         if (localVideoRef.current) {
@@ -253,9 +328,20 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
                       Play Video
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        // Re-join the stream to force reconnection
+                        leaveStream(chatId);
+                        setTimeout(() => joinStream(chatId), 1000);
+                      }}
+                      className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Try Again
                     </button>
                   )}
                 </div>
@@ -268,47 +354,35 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
           </div>
           
           {/* Viewer count badge */}
-          <div className="absolute top-2 right-2 bg-black/50 px-2 py-1 rounded text-sm text-white flex items-center">
-            <Users className="w-4 h-4 mr-1" /> {streamViewers.length} viewer{streamViewers.length !== 1 ? 's' : ''}
-          </div>
+          {isInstructor && (
+            <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+              {streamViewers.length} {streamViewers.length === 1 ? 'viewer' : 'viewers'}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Viewers sidebar */}
-      {showViewers && (
+      {showViewers && isInstructor && (
         <div 
           ref={viewersSidebarRef}
-          className="absolute right-0 top-0 h-full w-64 bg-gray-800 text-white p-4 overflow-y-auto"
+          className="absolute top-16 right-0 bottom-0 w-64 bg-gray-800 shadow-lg overflow-y-auto"
         >
-          <h4 className="text-lg font-semibold mb-4">Viewers ({streamViewers.length})</h4>
-          <div className="space-y-2">
-            {streamViewers.map(viewerId => (
-              <div 
-                key={viewerId} 
-                className="flex items-center justify-between p-2 bg-gray-700 rounded"
-              >
-                <span className="truncate">
-                  {streamViewerNames[viewerId] || 'Anonymous User'}
-                </span>
-                {isInstructor && (
-                  <button
-                    onClick={() => {
-                      // Notify server to remove this viewer
-                      socket?.emit("removeViewer", { 
-                        chatId, 
-                        userId: viewerId 
-                      });
-                    }}
-                    className="p-1 text-red-400 hover:text-red-300"
-                    title="Remove viewer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-            {streamViewers.length === 0 && (
-              <p className="text-gray-400 text-center py-4">No viewers yet</p>
+          <div className="p-4 border-b border-gray-700">
+            <h4 className="text-lg font-semibold text-white">Stream Viewers ({streamViewers.length})</h4>
+          </div>
+          <div className="divide-y divide-gray-700">
+            {streamViewers.length > 0 ? (
+              streamViewers.map(viewerId => (
+                <div key={viewerId} className="p-3 text-white flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm mr-3">
+                    {(streamViewerNames[viewerId] || 'User')[0].toUpperCase()}
+                  </div>
+                  <span>{streamViewerNames[viewerId] || 'User'}</span>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-gray-400 text-center">No viewers yet</div>
             )}
           </div>
         </div>

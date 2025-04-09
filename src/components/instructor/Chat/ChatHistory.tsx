@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Smile, Paperclip, Video, X, Cast } from "lucide-react";
+import { Send, Smile, Paperclip, X, Cast } from "lucide-react";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
 import { useSelector } from "react-redux";
@@ -7,7 +7,6 @@ import { useSocketContext } from "../../../context/SocketProvider";
 import { RootState } from "../../../redux/store";
 import { toast } from "react-hot-toast";
 import ParticipantsModal from "../../common/Chat/ParticipantsModal";
-import VideoCallModal from "../../common/Chat/VideoCallModal";
 import StreamingModal from "../../common/Chat/StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
 
@@ -60,15 +59,8 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   const { user } = useSelector((state: RootState) => state.user);
   const {
     socket,
-    initiateVideoCall,
-    endVideoCall,
-    isVideoCallActive,
-    localStream,
-    remoteStream,
-    setIsVideoCallActive,
     typingUsers,
     handleTyping,
-    joinVideoCall,
     // Stream props
     initiateStream,
     endStream,
@@ -81,15 +73,9 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [showVideoModal, setShowVideoModal] = useState(false);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
-  const [incomingCall, setIncomingCall] = useState<{
-    chatId: string;
-    callerId: string;
-    callerName: string;
-  } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -134,78 +120,14 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         toast.error("Failed to send message. Please try again.");
       };
 
-      const handleIncomingCall = (callData: { chatId: string; callerId: string; callerName: string }) => {
-        console.log("Incoming call:", callData);
-        if (callData.callerId !== user._id) {  // Don't show notification to caller
-          setIncomingCall(callData);
-          // Use a valid audio URL that's guaranteed to work
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2355/2355-preview.mp3');
-          audio.loop = true;  // Make the ringtone loop
-          audio.play().catch(error => console.error('Error playing ringtone:', error));
-          // Store audio reference to stop it later
-          (window as any).incomingCallAudio = audio;
-        }
-      };
-
-      const handleCallAccepted = (data: { chatId: string; accepterId: string }) => {
-        console.log("Call accepted:", data);
-        if ((window as any).incomingCallAudio) {
-          (window as any).incomingCallAudio.pause();
-          (window as any).incomingCallAudio = null;
-        }
-        if (data.chatId === chat._id) {
-          setShowVideoModal(true);
-          if (data.accepterId !== user._id) {
-            initiateVideoCall(chat._id);
-          }
-        }
-      };
-
-      const handleCallRejected = (data: { chatId: string; rejecterId: string }) => {
-        console.log("Call rejected:", data);
-        // Stop ringtone if it's playing
-        if ((window as any).incomingCallAudio) {
-          (window as any).incomingCallAudio.pause();
-          (window as any).incomingCallAudio = null;
-        }
-        if (data.chatId === chat._id && data.rejecterId !== user._id) {
-          toast.error("Call was rejected");
-          setShowVideoModal(false);
-          setIncomingCall(null);
-        }
-      };
-
       socket.on("message", handleNewMessage);
       socket.on("messageSent", handleMessageSent);
       socket.on("messageError", handleMessageError);
-      socket.on("incomingCall", handleIncomingCall);
-      socket.on("callAccepted", handleCallAccepted);
-      socket.on("callRejected", handleCallRejected);
-
-      const handleVideoCallStarted = () => {
-        setIsVideoCallActive(true);
-        toast.success("Video call started. Join now!");
-      };
-
-      const handleVideoCallEnded = () => {
-        setIsVideoCallActive(false);
-        setShowVideoModal(false);
-        setIncomingCall(null);
-        toast.success("Video call ended.");
-      };
-
-      socket.on("videoCallStarted", handleVideoCallStarted);
-      socket.on("videoCallEnded", handleVideoCallEnded);
 
       return () => {
         socket.off("message", handleNewMessage);
         socket.off("messageSent", handleMessageSent);
         socket.off("messageError", handleMessageError);
-        socket.off("videoCallStarted", handleVideoCallStarted);
-        socket.off("videoCallEnded", handleVideoCallEnded);
-        socket.off("incomingCall", handleIncomingCall);
-        socket.off("callAccepted", handleCallAccepted);
-        socket.off("callRejected", handleCallRejected);
       };
     }
   }, [socket, chat?._id, instructorId, user._id]);
@@ -338,26 +260,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
-  const handleVideoCall = async () => {
-    try {
-      if (isVideoCallActive) {
-        endVideoCall(chat._id);
-        setShowVideoModal(false);
-      } else {
-        // Emit call initiation event instead of directly starting the call
-        socket?.emit("initiateCall", { 
-          chatId: chat._id, 
-          callerId: user._id,
-          callerName: user.username 
-        });
-        toast.success("Calling participants...");
-      }
-    } catch (error) {
-      console.error("Error handling video call:", error);
-      setShowVideoModal(false);
-    }
-  };
-
   const getTypingMessage = () => {
     const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chat?._id);
     if (currentChatTypingUsers.length === 0) return "";
@@ -375,12 +277,9 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }));
   };
 
-  // Clean up video call resources when component unmounts
+  // Clean up resources when component unmounts
   useEffect(() => {
     return () => {
-      if (isVideoCallActive) {
-        endVideoCall(chat._id);
-      }
       if (isStreaming) {
         endStream(chat._id);
       }
@@ -392,13 +291,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       // Only end the stream if we're the one streaming
       endStream(chat._id);
       setShowStreamingModal(false);
-    } else {
-      // Check if we're already in a video call before starting stream
-      if (isVideoCallActive) {
-        toast.error("Please end the video call before starting a stream");
-        return;
-      }
-      
+    } else {      
       try {
         initiateStream(chat._id);
         setShowStreamingModal(true);
@@ -407,28 +300,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         toast.error("Failed to start stream. Please try again.");
         setShowStreamingModal(false);
       }
-    }
-  };
-
-  const handleAcceptCall = () => {
-    if (incomingCall && socket) {
-      socket.emit("acceptCall", { 
-        chatId: incomingCall.chatId,
-        accepterId: user._id 
-      });
-      setIncomingCall(null);
-      setShowVideoModal(true);
-      joinVideoCall(incomingCall.chatId);
-    }
-  };
-
-  const handleRejectCall = () => {
-    if (incomingCall && socket) {
-      socket.emit("rejectCall", { 
-        chatId: incomingCall.chatId,
-        rejecterId: user._id 
-      });
-      setIncomingCall(null);
     }
   };
 
@@ -469,14 +340,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           </button>
         </div>
         <div className="flex space-x-2">
-          <button
-            onClick={handleVideoCall}
-            className={`p-2 transition-colors ${
-              isVideoCallActive ? "text-red-500 hover:text-red-700" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <Video className="w-6 h-6" />
-          </button>
           {user.role === "instructor" && (
             <button
               onClick={handleStartStream}
@@ -498,19 +361,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         participants={getParticipantsWithUsernames()}
       />
 
-      {/* Video call modal */}
-      {showVideoModal && (
-        <VideoCallModal
-          localStream={localStream}
-          remoteStream={remoteStream}
-          onEndCall={() => {
-            endVideoCall(chat._id);
-            setShowVideoModal(false);
-          }}
-          isInstructor={true}
-        />
-      )}
-
       {/* Streaming modal */}
       {showStreamingModal && (
         <StreamingModal
@@ -521,30 +371,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           }}
           isInstructor={true}
         />
-      )}
-
-      {/* Add Incoming Call Modal */}
-      {incomingCall && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Incoming Video Call</h3>
-            <p className="mb-6">{incomingCall.callerName} is calling...</p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={handleRejectCall}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-              >
-                Decline
-              </button>
-              <button
-                onClick={handleAcceptCall}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-              >
-                Accept
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Messages area */}
