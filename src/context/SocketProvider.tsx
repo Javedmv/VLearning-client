@@ -108,10 +108,24 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   
   const iceServers = {
     iceServers: [
+      // STUN servers for NAT traversal
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
       { urls: "stun:stun2.l.google.com:19302" },
+      // TURN servers for fallback relay when direct connection fails
+      // Replace with your actual TURN server credentials
+      { 
+        urls: "turn:openrelay.metered.ca:80",
+        username: "openrelayproject",
+        credential: "openrelayproject" 
+      },
+      {
+        urls: "turn:openrelay.metered.ca:443",
+        username: "openrelayproject",
+        credential: "openrelayproject"
+      }
     ],
+    iceCandidatePoolSize: 10
   };
 
   // Update the ref when the state changes
@@ -148,7 +162,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           console.log(`Sending ICE candidate to ${targetUserId}`);
           socket.emit('streamIceCandidate', {
             chatId: currentChatId,
-            from: user?.id,
+            from: user?._id,
             to: targetUserId,
             candidate: event.candidate
           });
@@ -158,9 +172,25 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       // Handle connection state changes
       connection.onconnectionstatechange = () => {
         console.log(`Connection state changed: ${connection.connectionState}`);
-        if (connection.connectionState === 'failed' || 
+        if (connection.connectionState === 'connected') {
+          console.log(`Connection established with ${targetUserId}`);
+          setCallStatus('connected');
+        } else if (connection.connectionState === 'failed' || 
             connection.connectionState === 'closed' ||
             connection.connectionState === 'disconnected') {
+          cleanupPeerConnection(targetUserId);
+        }
+      };
+      
+      // Add ice connection state monitoring
+      connection.oniceconnectionstatechange = () => {
+        console.log(`ICE connection state changed: ${connection.iceConnectionState}`);
+        if (connection.iceConnectionState === 'connected' || connection.iceConnectionState === 'completed') {
+          console.log(`ICE connection established with ${targetUserId}`);
+          setCallStatus('connected');
+        } else if (connection.iceConnectionState === 'failed') {
+          console.log(`ICE connection failed with ${targetUserId}`);
+          setCallStatus('failed');
           cleanupPeerConnection(targetUserId);
         }
       };
@@ -381,7 +411,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         const timeout = setTimeout(() => {
           console.log('ICE gathering timed out, sending offer anyway');
           resolve();
-        }, 5000);
+        }, 10000); // Increased to 10 seconds for better reliability
         
         if (pc.iceGatheringState === 'complete') {
           clearTimeout(timeout);
@@ -426,9 +456,15 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         if (!pc) throw new Error("Failed to create peer connection");
       }
 
-      if (pc.signalingState !== 'stable') {
-        console.log('Signaling state not stable, rolling back');
-        await pc.setLocalDescription({type: 'rollback'});
+      // Check signaling state and handle it appropriately
+      try {
+        if (pc.signalingState !== 'stable') {
+          console.log('Signaling state not stable, rolling back');
+          await pc.setLocalDescription({type: 'rollback'});
+        }
+      } catch (e) {
+        console.warn('Error during rollback, continuing anyway:', e);
+        // Continue anyway - some browsers don't support rollback
       }
 
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -448,7 +484,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         const timeout = setTimeout(() => {
           console.log('ICE gathering timed out, sending answer anyway');
           resolve();
-        }, 5000);
+        }, 10000); // Increased to 10 seconds for better reliability
         
         if (pc.iceGatheringState === 'complete') {
           clearTimeout(timeout);
@@ -703,12 +739,17 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     const newSocket = io(SOCKET_URL, {
       query: { userId: user._id },
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: true,
     });
 
+    console.log("Initializing socket connection to:", SOCKET_URL);
+    
     setSocket(newSocket);
 
     // Event handler definitions
@@ -823,12 +864,56 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     };
 
     const handleNewStreamViewer = async (data: { chatId: string, viewerId: string, viewerName: string }) => {
-      console.log(`New stream viewer: ${data.viewerName} (${data.viewerId})`);
+      console.log(`New stream viewer: ${data.viewerName} (${data.viewerId})`, {
+        currentChatId,
+        dataChatId: data.chatId,
+        isInstructor: user?.role === 'instructor', 
+        isStreaming,
+        hasLocalStream: !!localStream
+      });
       
       // Only instructors need to establish connections with new viewers
-      if (user?.role !== 'instructor' || !isStreaming || data.chatId !== currentChatId) return;
+      if (user?.role !== 'instructor' || !isStreaming || data.chatId !== currentChatId) {
+        console.log("Ignoring new stream viewer - conditions not met:", {
+          isInstructor: user?.role === 'instructor',
+          isStreaming,
+          chatIdMatch: data.chatId === currentChatId
+        });
+        return;
+      }
       
       try {
+        // Check if we have a local stream to share
+        if (!localStream) {
+          console.error("No local stream available to share with viewer:", data.viewerId);
+          toast.error("Stream setup issue - reconnecting camera");
+          
+          // Try to re-acquire media stream
+          try {
+            const stream = await getUserMedia();
+            setLocalStream(stream);
+            console.log("Re-acquired local stream for sharing");
+            
+            // Wait a moment for stream to initialize then retry
+            setTimeout(() => {
+              if (socket && isStreaming) {
+                console.log("Notifying viewer to reconnect:", data.viewerId);
+                socket.emit('streamReconnect', {
+                  chatId: data.chatId,
+                  viewerId: data.viewerId,
+                  streamerId: user._id
+                });
+              }
+            }, 1000);
+            
+            return;
+          } catch (err) {
+            console.error("Failed to re-acquire media stream:", err);
+            toast.error("Cannot share stream - camera access failed");
+            return;
+          }
+        }
+        
         // Update UI immediately to show new viewer
         setStreamViewers(prev => {
           if (!prev.includes(data.viewerId)) {
@@ -858,17 +943,25 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           }
         };
         
+        // Add connection state change handler
+        pc.onconnectionstatechange = () => {
+          console.log(`Connection state with viewer ${data.viewerId} changed:`, pc.connectionState);
+          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
+            console.log(`Connection with viewer ${data.viewerId} ${pc.connectionState}, cleaning up`);
+            cleanupPeerConnection(data.viewerId);
+          }
+        };
+        
         // Add all tracks from our local stream to the peer connection
         if (localStream) {
           console.log("Instructor adding tracks to stream for viewer:", data.viewerId);
+          const trackCount = localStream.getTracks().length;
+          console.log(`Local stream has ${trackCount} tracks to share`);
+          
           localStream.getTracks().forEach(track => {
-            console.log(`Adding track: ${track.kind} to connection for ${data.viewerId}`);
+            console.log(`Adding track: ${track.kind} (enabled: ${track.enabled}) to connection for ${data.viewerId}`);
             pc.addTrack(track, localStream);
           });
-        } else {
-          console.error("No local stream available to share with viewer:", data.viewerId);
-          toast.error("Cannot share stream - no camera available");
-          return;
         }
         
         // Store the peer connection
@@ -895,6 +988,25 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
             from: user._id,
             offer: pc.localDescription
           });
+          
+          // Set a timeout to check if connection was established
+          setTimeout(() => {
+            const currentPc = peerConnectionsRef.current.get(data.viewerId)?.connection;
+            if (currentPc && (currentPc.connectionState === 'new' || currentPc.connectionState === 'connecting')) {
+              console.log(`Connection with viewer ${data.viewerId} still in ${currentPc.connectionState} state after timeout`);
+              
+              // Try sending offer again
+              if (socket && currentPc.localDescription) {
+                console.log("Resending offer to viewer:", data.viewerId);
+                socket.emit("streamOffer", {
+                  chatId: data.chatId,
+                  to: data.viewerId,
+                  from: user._id,
+                  offer: currentPc.localDescription
+                });
+              }
+            }
+          }, 5000);
         } catch (offerError) {
           console.error("Error creating/sending offer to viewer:", offerError);
         }
@@ -916,16 +1028,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         // Create a new peer connection if one doesn't exist
         if (!peerConnectionsRef.current.has(data.from)) {
           console.log('Creating new peer connection for instructor:', data.from);
-          const pc = new RTCPeerConnection({
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-              { urls: 'stun:stun2.l.google.com:19302' },
-              { urls: 'stun:stun3.l.google.com:19302' },
-              { urls: 'stun:stun4.l.google.com:19302' }
-            ],
-            iceCandidatePoolSize: 10
-          });
+          // Use the same iceServers configuration for consistency
+          const pc = new RTCPeerConnection(iceServers);
           
           // Set up event handlers for the new connection
           pc.onicecandidate = (event) => {
@@ -1053,17 +1157,44 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     
     // Handle stream ICE candidate (both instructor and student)
     const handleStreamIceCandidate = async (data: { chatId: string, from: string, to: string, candidate: RTCIceCandidateInit }) => {
-      console.log(`Received stream ICE candidate from ${data.from}`);
+      console.log(`Received stream ICE candidate from ${data.from}`, {
+        candidateType: data.candidate.candidate?.split(' ')[7] || 'unknown', // Log candidate type
+        chatId: data.chatId,
+        currentChatId,
+        toUserId: data.to,
+        currentUserId: user?._id
+      });
       
-      if (data.chatId !== currentChatId || data.to !== user?._id) return;
+      // Less strict checking to handle more ICE candidates
+      if (data.to !== user?._id) {
+        console.log('ICE candidate not for this user, ignoring');
+        return;
+      }
       
       try {
         const pc = peerConnectionsRef.current.get(data.from)?.connection;
         if (pc) {
           console.log(`Adding ICE candidate from ${data.from}`);
-          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          
+          // Only add if the connection isn't closed
+          if (pc.connectionState !== 'closed') {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            console.log(`Successfully added ICE candidate from ${data.from}`);
+          } else {
+            console.warn(`Connection with ${data.from} is closed, can't add ICE candidate`);
+          }
         } else {
-          console.warn(`Received ICE candidate but no peer connection exists for ${data.from}`);
+          console.warn(`Received ICE candidate but no peer connection exists for ${data.from}. Creating a buffer.`);
+          
+          // When we create a connection for this peer, we'll need to retry connection
+          if (socket && user?._id) {
+            console.log(`Requesting new connection with ${data.from}`);
+            socket.emit('requestConnection', {
+              chatId: data.chatId,
+              targetUserId: data.from,
+              fromUserId: user._id
+            });
+          }
         }
       } catch (error) {
         console.error(`Error handling stream ICE candidate:`, error);
@@ -1085,6 +1216,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     newSocket.on("streamOffer", handleStreamOffer);
     newSocket.on("streamAnswer", handleStreamAnswer);
     newSocket.on("streamIceCandidate", handleStreamIceCandidate);
+    // Add handler for reconnect event - will be processed directly in joinStream
+    newSocket.on("streamReconnect", (data) => {
+      console.log("Received stream reconnect event:", data);
+    });
 
     // Return cleanup function
     return () => {
@@ -1103,6 +1238,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       newSocket.off("streamOffer", handleStreamOffer);
       newSocket.off("streamAnswer", handleStreamAnswer);
       newSocket.off("streamIceCandidate", handleStreamIceCandidate);
+      newSocket.off("streamReconnect");
       
       newSocket.disconnect();
     };
@@ -1243,7 +1379,12 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   // Student-only: Join a live stream
   const joinStream = async (chatId: string): Promise<() => void> => {
-    console.log('Joining stream for chat:', chatId);
+    console.log('Joining stream for chat:', chatId, {
+      socketConnected: socket?.connected,
+      socketId: socket?.id,
+      userId: user?._id,
+      currentChatId
+    });
     
     if (!socket || !user?._id) {
       console.error("Socket or user ID not available");
@@ -1265,23 +1406,71 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       
       cleanupAllPeerConnections();
       
-      // Create an empty audio stream to request microphone access
-      const emptyStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      emptyStream.getTracks().forEach(track => track.stop());
+      console.log("Requesting microphone access for connection");
+      try {
+        // Create an empty audio stream to request microphone access
+        const emptyStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        emptyStream.getTracks().forEach(track => track.stop());
+        console.log("Microphone access granted");
+      } catch (err) {
+        console.warn("Could not access microphone, continuing anyway:", err);
+      }
       
       // Join the stream room
+      console.log("Emitting joinStream event:", {
+        chatId,
+        userId: user._id,
+        username: user.username
+      });
+      
       socket.emit('joinStream', {
         chatId,
         userId: user._id,
         username: user.username
       });
       
+      // Add a direct connection request after a short delay
+      setTimeout(() => {
+        if (connectionRef.isCancelled) return;
+        
+        // Try to get the instructor ID from the logs/notifications
+        const instructorId = socket?.emit('requestConnection', {
+          chatId,
+          targetUserId: "INSTRUCTOR", // Special value that server will replace with instructor ID
+          fromUserId: user._id
+        });
+        
+        console.log("Sent direct connection request");
+      }, 2000);
+      
+      // Set up a handler for stream reconnect requests
+      const handleStreamReconnect = (data: { chatId: string, streamerId: string, viewerId: string }) => {
+        if (data.chatId === chatId && data.viewerId === user._id && !connectionRef.isCancelled) {
+          console.log("Received reconnect request from instructor:", data);
+          
+          // Clean up existing connections
+          cleanupAllPeerConnections();
+          
+          // Join the stream again
+          socket.emit('joinStream', {
+            chatId,
+            userId: user._id,
+            username: user.username
+          });
+          
+          toast.success("Reconnecting to stream...");
+        }
+      };
+      
+      // Listen for reconnect requests
+      socket.on('streamReconnect', handleStreamReconnect);
+      
       // Set up a timeout to check if connection was successful
       connectionRef.timeoutId = setTimeout(() => {
         if (connectionRef.isCancelled) return;
         
         if (callStatus === 'connecting') {
-          console.log('Connection timeout, attempting to reconnect...');
+          console.log('Connection timeout, attempting to reconnect...', { currentState: callStatus });
           toast.error('Connection timed out. Attempting to reconnect...');
           
           // Start a new connection attempt without creating a new cleanup function
@@ -1311,11 +1500,19 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         
         if (callStatus === 'connecting' && connectionRef.retryCount < maxRetries) {
           connectionRef.retryCount++;
-          console.log(`Retry attempt ${connectionRef.retryCount} of ${maxRetries}`);
+          console.log(`Retry attempt ${connectionRef.retryCount} of ${maxRetries}`, { currentState: callStatus });
+          
           socket.emit('joinStream', {
             chatId,
             userId: user._id,
             username: user.username
+          });
+          
+          // Also try a direct connection request
+          socket.emit('requestConnection', {
+            chatId,
+            targetUserId: "INSTRUCTOR", // Special value that server will replace with instructor ID
+            fromUserId: user._id
           });
         } else if (connectionRef.retryCount >= maxRetries) {
           if (connectionRef.intervalId) clearInterval(connectionRef.intervalId);
@@ -1331,6 +1528,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return () => {
         console.log('Cleanup function called - cancelling all connection attempts');
         connectionRef.isCancelled = true;
+        
+        // Remove the reconnect handler
+        socket.off('streamReconnect', handleStreamReconnect);
         
         if (connectionRef.timeoutId) clearTimeout(connectionRef.timeoutId);
         if (connectionRef.intervalId) clearInterval(connectionRef.intervalId);

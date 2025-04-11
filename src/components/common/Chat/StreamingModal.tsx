@@ -76,7 +76,10 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
           console.log("Instructor initiating stream for", chatId);
           await initiateStream(chatId);
         } else {
-          console.log("Student joining stream for", chatId);
+          console.log("Student joining stream for", chatId, {
+            socketConnected: socket?.connected,
+            socketId: socket?.id
+          });
           await joinStream(chatId);
         }
       } catch (error) {
@@ -89,9 +92,24 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
     
     initializeStream();
     
+    // Log connection status periodically
+    const statusInterval = setInterval(() => {
+      console.log("Stream connection status:", {
+        chatId,
+        callStatus,
+        isInstructor,
+        hasLocalStream: !!localStream,
+        streamTrackCount: localStream ? localStream.getTracks().length : 0,
+        peerConnectionsCount: socket?.connected ? 'Active' : 'Not connected',
+        socketConnected: socket?.connected
+      });
+    }, 5000);
+    
     // Cleanup on unmount
     return () => {
       console.log("StreamingModal unmounting", {isInstructor, isStreaming, currentChatId, chatId});
+      
+      clearInterval(statusInterval);
       
       if (isInitializedRef.current) {
         // Only instructor should end the stream, others just leave
@@ -177,6 +195,43 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
     }
   };
 
+  // Add a function to manually force reconnection
+  const forceReconnection = () => {
+    if (isInstructor) {
+      toast.success("Restarting stream...");
+      
+      // End current stream
+      endStream(chatId);
+      
+      // Wait a bit then restart
+      setTimeout(async () => {
+        try {
+          await initiateStream(chatId);
+          toast.success("Stream restarted successfully");
+        } catch (error) {
+          console.error("Failed to restart stream:", error);
+          toast.error("Failed to restart stream");
+        }
+      }, 2000);
+    } else {
+      toast.success("Reconnecting to stream...");
+      
+      // Leave current stream
+      leaveStream(chatId);
+      
+      // Wait a bit then rejoin
+      setTimeout(async () => {
+        try {
+          await joinStream(chatId);
+          toast.success("Reconnection attempt sent");
+        } catch (error) {
+          console.error("Failed to reconnect to stream:", error);
+          toast.error("Failed to reconnect to stream");
+        }
+      }, 1000);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
       <div className="flex justify-between items-center p-4 bg-gray-800 text-white">
@@ -237,6 +292,13 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
         {callStatus === 'connecting' && (
           <div className="absolute top-20 left-0 right-0 text-center text-white bg-gray-800/70 py-2">
             {isInstructor ? "Starting stream..." : "Connecting to stream..."}
+            <br />
+            <button 
+              onClick={forceReconnection}
+              className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+            >
+              Force Reconnect
+            </button>
           </div>
         )}
 
@@ -282,12 +344,7 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
                         Play Video
                       </button>
                       <button
-                        onClick={() => {
-                          // Re-join the stream to force reconnection
-                          leaveStream(chatId);
-                          setTimeout(() => joinStream(chatId), 1000);
-                          toast.success("Attempting to reconnect...");
-                        }}
+                        onClick={forceReconnection}
                         className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
                       >
                         Reconnect
@@ -307,10 +364,17 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
                     <p className="text-white text-sm text-left mb-2">Connection Diagnostics:</p>
                     <ul className="text-white text-xs text-left list-disc list-inside space-y-1">
                       <li>Chat ID: {chatId}</li>
-                      <li>Socket Connected: {socket ? "Yes" : "No"}</li>
+                      <li>Socket Connected: {socket ? (socket.connected ? "Yes" : "No") : "No"}</li>
+                      <li>Socket ID: {socket?.id || "N/A"}</li>
                       <li>User ID Available: {user?._id ? "Yes" : "No"}</li>
                       <li>Streaming: {isStreaming ? "Yes" : "No"}</li>
                       <li>Status: {callStatus}</li>
+                      <li>Browser: {navigator.userAgent.includes("Chrome") ? "Chrome" : 
+                          navigator.userAgent.includes("Firefox") ? "Firefox" : 
+                          navigator.userAgent.includes("Safari") ? "Safari" : "Other"}</li>
+                      <li>WebRTC Supported: {window.RTCPeerConnection ? "Yes" : "No"}</li>
+                      <li>Secure Context: {window.isSecureContext ? "Yes" : "No"}</li>
+                      <li>Connection Attempts: {socket ? "Active" : "None"}</li>
                     </ul>
                   </div>
                   <div className="flex items-center justify-center gap-2">
@@ -319,26 +383,30 @@ const StreamingModal: React.FC<StreamingModalProps> = ({
                     <div className="w-2 h-2 bg-white rounded-full animate-ping" style={{ animationDelay: '0.4s' }}></div>
                   </div>
                   {callStatus === 'connected' || callStatus === 'connecting' ? (
-                    <button 
-                      onClick={() => {
-                        if (localVideoRef.current) {
-                          localVideoRef.current.play().catch(e => {
-                            console.error("Error playing video:", e);
-                            toast.error("Error playing video. Please try refreshing the page.");
-                          });
-                        }
-                      }}
-                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      Play Video
-                    </button>
+                    <div className="space-y-2 mt-4">
+                      <button 
+                        onClick={() => {
+                          if (localVideoRef.current) {
+                            localVideoRef.current.play().catch(e => {
+                              console.error("Error playing video:", e);
+                              toast.error("Error playing video. Please try refreshing the page.");
+                            });
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        Play Video
+                      </button>
+                      <button 
+                        onClick={forceReconnection}
+                        className="ml-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                      >
+                        Force Reconnect
+                      </button>
+                    </div>
                   ) : (
                     <button 
-                      onClick={() => {
-                        // Re-join the stream to force reconnection
-                        leaveStream(chatId);
-                        setTimeout(() => joinStream(chatId), 1000);
-                      }}
+                      onClick={forceReconnection}
                       className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                     >
                       Try Again
