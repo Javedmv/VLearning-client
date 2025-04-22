@@ -97,3 +97,19 @@ export const reapplyInstructor = createAsyncThunk("user/reapplyInstructor", asyn
         return rejectWithValue(error)
     }
 })
+
+export const googleLoginUser = createAsyncThunk("user/googleLogin", async(userCredentials: any ,{rejectWithValue}) => {
+    try {
+        const response = await commonReduxRequest(
+            "POST",
+            `${URL}/auth/google-login`,
+            rejectWithValue,
+            userCredentials,
+            config
+        );
+        console.log(response,"response return in redux")
+        return response;
+    } catch (error:any) {
+        return rejectWithValue(error.payload?.response?.data?.message || "Login failed");
+    }
+})

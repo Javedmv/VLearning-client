@@ -2,17 +2,18 @@ import React, {useEffect, useRef, useState} from "react";
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { Link, useNavigate } from "react-router-dom";
-import GoogleIcon from "../../assets/icons8-google.svg";
 import LoginIcon from "../../assets/loginImg.jpeg";
 import { useDispatch, useSelector  } from "react-redux";
 import toast from "react-hot-toast";
-import { loginUser } from "../../redux/actions/user/userAction";
+import { googleLoginUser, loginUser } from "../../redux/actions/user/userAction";
 import { AppDispatch, RootState  } from "../../redux/store";
 import { updateError } from "../../redux/reducers/userSlice";
 import { commonRequest, URL } from "../../common/api";
 import { config } from "../../common/configurations";
 import OtpModal from "../../components/user/otpModal";
 import PasswordResetModal from "../../components/user/PasswordResetModal";
+import { GoogleLogin } from "@react-oauth/google";
+import {jwtDecode} from "jwt-decode";
 
 interface LoginFormValues {
   email: string;
@@ -171,6 +172,36 @@ const Login: React.FC = () => {
   //   }
   // }
 
+  const handleGoogleLogin = async (credential: string) => {
+    try {
+      // Decode JWT (Google ID Token)
+      const decodeJWT = (token: string) => {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join('')
+        );
+        return JSON.parse(jsonPayload);
+      };
+  
+      const decoded = decodeJWT(credential);
+      console.log("Decoded Google ID token payload before dispatch:", decoded);
+  
+      // Now dispatch
+      await dispatch(googleLoginUser({ decoded }));
+      toast.success("Google login successful");
+      // navigate("/");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Google login failed");
+    }
+  };
+  
+
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen">
@@ -249,19 +280,20 @@ const Login: React.FC = () => {
 
                   {/* Sign In with Google */}
                   <div className="flex justify-center mt-5">
-                    <a
-                      href="#"
-                      className="bg-gray-400 rounded-full py-2 px-6 text-center text-white font-semibold hover:bg-gray-500 hover:underline flex items-center justify-center"
-                    >
-                      <span className="mr-2">
-                        <img
-                          src={GoogleIcon}
-                          alt="Google icon"
-                          className="w-5 h-5 md:w-6 md:h-6 inline-block"
-                        />
-                      </span>
-                      Sign in with Google
-                    </a>
+                    <GoogleLogin
+                      onSuccess={(credentialResponse) => {
+                        const credential = credentialResponse.credential;
+                        if (credential) {
+                          console.log("Raw Google Credential JWT:", credential);
+                          const decoded: any = jwtDecode(credential);
+                          console.log("Decoded Google Credential:", decoded);
+                          handleGoogleLogin(credential);
+                        }
+                      }}
+                      onError={() => {
+                        toast.error("Google login failed");
+                      }}
+                    />
                   </div>
 
                   <p className="mt-3 text-center text-gray-600">
