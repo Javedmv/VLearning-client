@@ -101,12 +101,12 @@ const UserForm: React.FC = () => {
   const {user } = useSelector((state:RootState) => state.user);
 
   const initialValues: FormValues = {
-    username: user.username,
+    username: user?.username || '',
     firstName: '',
     lastName: '',
-    email: user.email,
+    email: user?.email,
     phoneNumber: '',
-    role: user.role,
+    role: user?.role || 'student',
     profile: {
       avatar: '',
       dob: '',

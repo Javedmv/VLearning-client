@@ -6,13 +6,15 @@ import Icon from "../../assets/signupIcon.avif";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../redux/store";
-import { signUpUser } from "../../redux/actions/user/userAction";
+import { googleLoginUser, signUpUser } from "../../redux/actions/user/userAction";
 import { commonRequest } from "../../common/api";
 import { config } from "../../common/configurations";
 import { URL } from "../../common/api";
 import OtpModal from '../../components/user/otpModal';
 import toast from "react-hot-toast";
 import { updateError } from "../../redux/reducers/userSlice";
+import { GoogleLogin } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
 
 // interface - form values
 interface SignupFormValues {
@@ -186,6 +188,35 @@ const Signup: React.FC = () => {
   //   }
   // }, [showOtpModal]);
 
+  const handleGoogleLogin = async (credential: string) => {
+    try {
+      // Decode JWT (Google ID Token)
+      const decodeJWT = (token: string) => {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join('')
+        );
+        return JSON.parse(jsonPayload);
+      };
+  
+      const decoded = decodeJWT(credential);
+      console.log("Decoded Google ID token payload before dispatch:", decoded);
+  
+      // Now dispatch
+      await dispatch(googleLoginUser({ decoded }));
+      toast.success("Google login successful");
+      // navigate("/");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Google login failed");
+    }
+  };
+
 
 
   return (
@@ -291,17 +322,20 @@ const Signup: React.FC = () => {
 
             {/* Sign In with Google */}
             <div className="flex justify-center mt-5">
-              <Link to="/login"
-                className="bg-gray-400 rounded-full py-2 px-6 text-center text-white font-semibold hover:bg-gray-500 hover:underline flex items-center justify-center">
-                <span className="mr-2">
-                  <img
-                    src={GoogleIcon}
-                    alt="Google icon"
-                    className="w-5 h-5 md:w-6 md:h-6 inline-block"
-                  />
-                </span>
-                Sign in with Google
-              </Link>
+                <GoogleLogin
+                  onSuccess={(credentialResponse) => {
+                    const credential = credentialResponse.credential;
+                    if (credential) {
+                      console.log("Raw Google Credential JWT:", credential);
+                      const decoded: any = jwtDecode(credential);
+                      console.log("Decoded Google Credential:", decoded);
+                      handleGoogleLogin(credential);
+                    }
+                  }}
+                  onError={() => {
+                    toast.error("Google login failed");
+                  }}
+                />
             </div>
 
             <p className="mt-3 text-center text-gray-600">
