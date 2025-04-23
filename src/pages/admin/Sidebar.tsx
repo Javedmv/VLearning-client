@@ -19,10 +19,11 @@ import { logout } from '../../redux/actions/user/userAction';
 const Sidebar: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>()
 
-  function handleLogout(){
+  async function handleLogout() {
     try {
-      dispatch(logout())
-      .then(() => toast.success("Logout Successfully"))
+      await dispatch(logout())
+      toast.success("Logout Successfully")
+      window.location.href = "/";
     } catch (error) {
       console.error(error,"ERROR in HANDLE LOGOUT ADMIN")
     }

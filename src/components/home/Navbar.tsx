@@ -23,11 +23,12 @@ const Navbar: React.FC<NavbarProps> = ({ User }) => {
     setSelectedLink(location.pathname);
   }, [location]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      dispatch(logout());
-      toast.success("Logout Successfully");
-      navigate("/");
+      await dispatch(logout()).then(() => {
+        toast.success("Logout Successfully");
+        navigate("/");
+      })
     } catch (error) {
       console.error(error, "ERROR in HANDLE LOGOUT");
     }

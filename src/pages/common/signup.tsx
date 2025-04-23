@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import GoogleIcon from "../../assets/icons8-google.svg";
 import Icon from "../../assets/signupIcon.avif";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
