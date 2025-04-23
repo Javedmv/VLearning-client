@@ -65,6 +65,10 @@ const CourseList: React.FC<{courses: Course[]}> = ({courses}) => {
     ? [...visibleCourses, ...courses.slice(0, 3 - visibleCourses.length)]
     : visibleCourses;
 
+  const handleCourseDetail = (course: Course) => {
+    navigate(`/details/${course._id}`);
+  }
+
   return (
     <div className="px-4 md:px-8 py-12" ref={containerRef}>
       {/* Header Section */}
@@ -91,7 +95,7 @@ const CourseList: React.FC<{courses: Course[]}> = ({courses}) => {
             className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
           >
             {/* Course Image */}
-            <div className="relative h-48 overflow-hidden">
+            <div className="relative h-48 overflow-hidden" onClick={() => handleCourseDetail(course)}>
               <img
                 src={course.thumbnail || (course.basicDetails && course.basicDetails.thumbnail)}
                 alt={course.name || (course.basicDetails && course.basicDetails.title)}
