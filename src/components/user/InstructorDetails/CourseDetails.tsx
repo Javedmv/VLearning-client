@@ -2,9 +2,10 @@ import React from 'react';
 import { Clock, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { TOBE } from '../../../common/constants';
 
 interface InstructorCoursesProps {
-  courses: any[];
+  courses: TOBE[];
   name: string;
 }
 
@@ -27,7 +28,7 @@ const InstructorCourses: React.FC<InstructorCoursesProps> = ({courses, name}) =>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {courses.map((course:any) => (
+        {courses.map((course:TOBE) => (
           <div onClick={() => handleCourseDetails(course._id)} key={course?._id} className="bg-gray-300 bg-opacity-90 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <img
               src={course?.basicDetails?.thumbnail}
@@ -56,7 +57,7 @@ const InstructorCourses: React.FC<InstructorCoursesProps> = ({courses, name}) =>
                   <span>
                     {(() => {
                       // Calculate total duration in minutes
-                      const totalDurationInMinutes = course?.courseContent?.lessons?.reduce((total: number, lesson: any) => {
+                      const totalDurationInMinutes = course?.courseContent?.lessons?.reduce((total: number, lesson: TOBE) => {
                         const duration = lesson?.duration; // Get duration from lesson
 
                         if (typeof duration === 'string') {

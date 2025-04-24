@@ -3,6 +3,7 @@ import { Formik, Form, Field, FieldArray, FormikErrors, FormikTouched } from 'fo
 import * as Yup from 'yup';
 import { Plus, Trash2, Upload } from 'lucide-react';
 import { Lesson, CourseContents } from '../../../types/Courses';
+import { TOBE } from '../../../common/constants';
 
 interface CourseContentProps {
   onSubmit: (values: CourseContents) => void;
@@ -35,12 +36,12 @@ const CourseContent: React.FC<CourseContentProps> = ({
   onNext,
   initialValues,
 }) => {
-  const formikRef = React.useRef<any>(null);
+  const formikRef = React.useRef<TOBE>(null);
 
   const handleVideoChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number,
-    setFieldValue: (field: string, value: any) => void
+    setFieldValue: (field: string, value: TOBE) => void
   ) => {
     const file = e.target.files?.[0];
     if (file instanceof File) {
@@ -99,7 +100,7 @@ const CourseContent: React.FC<CourseContentProps> = ({
           values: CourseContents;
           errors: FormikErrors<CourseContents>;
           touched: FormikTouched<CourseContents>;
-          setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void;
+          setFieldValue: (field: string, value: TOBE, shouldValidate?: boolean) => void;
         }) => (
           <Form>
             <FieldArray name="lessons">

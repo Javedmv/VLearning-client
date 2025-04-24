@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { CourseData } from '../types/Courses';
+import { TOBE } from "./constants";
 
 const S3_BUCKET = import.meta.env.VITE_S3_BUCKET_NAME!;
 const REGION = import.meta.env.VITE_AWS_REGION!;
@@ -97,9 +98,9 @@ export const uploadLessonsToS3 = async (courseData: CourseData) => {
 };
 
 
-export const uploadEditedLessonTos3 = async (course: any) => {
+export const uploadEditedLessonTos3 = async (course: TOBE) => {
   try {
-    const updatedLesson: any[] = [...course.courseContent.lessons];
+    const updatedLesson: TOBE[] = [...course.courseContent.lessons];
     const { thumbnail, title } = course?.basicDetails;
 
     // Handle thumbnail upload

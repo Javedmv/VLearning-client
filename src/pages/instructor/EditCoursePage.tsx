@@ -10,6 +10,7 @@ import { PricingSection } from '../../components/instructor/editCourse/PricingSe
 import toast from 'react-hot-toast';
 import { PenSquare } from 'lucide-react';
 import { getVideoDuration } from '../../common/functions';
+import { TOBE } from '../../common/constants';
 
 
 // types.ts
@@ -56,7 +57,7 @@ export interface Course {
 
 const EditCoursePage = () => {
   const { state: { course } } = useLocation();
-  const [courseData, setCourseData] = useState<any>(course);
+  const [courseData, setCourseData] = useState<TOBE>(course);
   const [categories, setCategories] = useState<Category[]>([]);
   const navigate = useNavigate();
 
@@ -283,7 +284,7 @@ const EditCoursePage = () => {
 
   const handleDeleteLesson = (index:number) => {
     try {
-      const updatedLessons = courseData?.courseContent?.lessons.filter((_:any, i:number) => i !== index);
+      const updatedLessons = courseData?.courseContent?.lessons.filter((_:TOBE, i:number) => i !== index);
       setCourseData({
         ...courseData,
         courseContent: { ...courseData.courseContent, lessons: updatedLessons }
@@ -314,7 +315,7 @@ const EditCoursePage = () => {
           onAdd={() => handleAddLearningPoints()}
           onChange={handleLearningPointChange}
           onDelete={(index) => {
-            const updatedPoints = courseData.basicDetails.whatWillLearn.filter((_:any, i:number) => i !== index);
+            const updatedPoints = courseData.basicDetails.whatWillLearn.filter((_:TOBE, i:number) => i !== index);
             setCourseData({
               ...courseData,
               basicDetails: { ...courseData.basicDetails, whatWillLearn: updatedPoints }

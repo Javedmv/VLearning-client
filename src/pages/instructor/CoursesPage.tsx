@@ -8,13 +8,14 @@ import { RootState } from '../../redux/store';
 import Modal from '../../components/common/Modal';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/common/Pagination';
+import { TOBE } from '../../common/constants';
 
 
 const CoursesPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const [courses, setCourses] = useState<CourseData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [selectedCourse, setSelectedCourse] = useState<TOBE>(null);
   const navigate = useNavigate();
   const [meta, setMeta] = useState({
     total: 0,
@@ -46,7 +47,7 @@ const CoursesPage: React.FC = () => {
     fetchCourses();
   }, [meta.page]);
 
-  const handleCourseEdit = (course:any) => {
+  const handleCourseEdit = (course:TOBE) => {
     try {
       console.log("Edit course confirmed", course);
       navigate('/edit-course',{state:{course}});
@@ -63,7 +64,7 @@ const CoursesPage: React.FC = () => {
     }
   }
 
-  const openModal = (course:any) => {
+  const openModal = (course:TOBE) => {
     setSelectedCourse(course);
     setIsModalOpen(true);
   };

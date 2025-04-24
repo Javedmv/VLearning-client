@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import Pagination from '../../components/common/Pagination';
 import { useSocketContext } from '../../context/SocketProvider';
+import { TOBE } from '../../common/constants';
 
 interface Student {
   username: string;
@@ -23,7 +24,7 @@ interface Student {
 }
 
 const Students: React.FC = () => {
-  const { user } = useOutletContext<{ user: any }>();
+  const { user } = useOutletContext<{ user: TOBE }>();
   const [students, setStudents] = useState<Student[]>([]);
   const [meta, setMeta] = useState({page: 1, limit: 6, total: 0, totalPages: 0});
   const { socket } = useSocketContext();

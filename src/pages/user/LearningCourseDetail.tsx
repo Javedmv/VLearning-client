@@ -12,6 +12,7 @@ import ShimmerCourseDetail from '../../ShimmerUi/User/ShimmerCourseDetail';
 import ChatBar from "../../components/common/Chat/ChatBar"; // Adjust the path if needed
 import VideoPlayer from '../../components/common/VideoPlayer';
 import Cookies from 'js-cookie';
+import { TOBE } from '../../common/constants';
 
 interface CertificateDownloadParams {
   enrollmentId: string;
@@ -62,7 +63,7 @@ const LearningCourseDetail: React.FC = () => {
   useEffect(() => {
     if (course && currentLessonId) {
       const lesson = course.courseId.courseContent.lessons.find(
-        (lesson:any) => lesson._id === currentLessonId
+        (lesson:TOBE) => lesson._id === currentLessonId
       );
       setCurrentLesson(lesson || null);
     }
@@ -76,7 +77,7 @@ const LearningCourseDetail: React.FC = () => {
       const completedLessons = course.progress.completedLessons; // Completed lesson IDs
   
       // Find the index of the clicked lesson
-      const lessonIndex = lessons.findIndex((lesson: any) => lesson._id === lessonId);
+      const lessonIndex = lessons.findIndex((lesson: TOBE) => lesson._id === lessonId);
   
       if (lessonIndex === -1) {
         toast.error("Invalid lesson selection.");
@@ -239,7 +240,7 @@ const LearningCourseDetail: React.FC = () => {
                 <Clock className="mr-2 h-4 w-4" />
                 <span>
                   {(() => {
-                    const totalSeconds = course?.courseId.courseContent?.lessons?.reduce((acc: number, lesson: any) => {
+                    const totalSeconds = course?.courseId.courseContent?.lessons?.reduce((acc: number, lesson: TOBE) => {
                       const [minutes, seconds] = lesson.duration.split(":").map(Number);
                       return acc + minutes * 60 + seconds;
                     }, 0);
@@ -276,7 +277,7 @@ const LearningCourseDetail: React.FC = () => {
             </div>
   
             <div className="divide-y">
-              {course.courseId.courseContent.lessons.map((lesson: any) => (
+              {course.courseId.courseContent.lessons.map((lesson: TOBE) => (
                 <button
                   key={lesson._id}
                   onClick={() => handleLessonChange(lesson._id)}

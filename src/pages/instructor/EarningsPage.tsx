@@ -3,9 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
+import { TOBE } from '../../common/constants';
 
 const EarningsPage: React.FC = () => {
-    const [earnings, setEarnings] = useState<any[]>([]);
+    const [earnings, setEarnings] = useState<TOBE[]>([]);
     const [totalEarnings, setTotalEarnings] = useState<number>(0);
 
     const fetchEarnings = async () => {
@@ -19,7 +20,7 @@ const EarningsPage: React.FC = () => {
             setEarnings(response.data);
 
             // Calculate total earnings
-            const total = response.data.reduce((acc: number, transaction: any) => acc + transaction.instructorEarnings, 0);
+            const total = response.data.reduce((acc: number, transaction: TOBE) => acc + transaction.instructorEarnings, 0);
             setTotalEarnings(total);
         } catch (error) {
             console.error('Error fetching earnings:', error);

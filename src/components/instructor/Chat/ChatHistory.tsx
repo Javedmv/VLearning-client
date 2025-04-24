@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import ParticipantsModal from "../../common/Chat/ParticipantsModal";
 import StreamingModal from "../../common/Chat/StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
+import { TOBE } from "../../../common/constants";
 
 enum ContentType {
   TEXT = "text",
@@ -52,7 +53,7 @@ interface Chat {
 
 interface ChatHistoryProps {
   chat: Chat;
-  selectedUser: any;
+  selectedUser: TOBE;
 }
 
 export function ChatHistory({ chat }: ChatHistoryProps) {
@@ -114,7 +115,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         setIsSending(false);
       };
 
-      const handleMessageError = (error: any) => {
+      const handleMessageError = (error: TOBE) => {
         console.error("Message error:", error);
         setIsSending(false);
         toast.error("Failed to send message. Please try again.");
@@ -303,7 +304,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
-  const handleEmojiClick = (emojiData: any) => {
+  const handleEmojiClick = (emojiData: TOBE) => {
     setNewMessage(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
@@ -398,7 +399,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                 index > 0 &&
                 (typeof message.sender === "string"
                   ? message.sender === messages[index - 1].sender
-                  : message.sender._id === (messages[index - 1].sender as any)._id);
+                  : message.sender._id === (messages[index - 1].sender as TOBE)._id);
 
               const timestamp = message.createdAt
                 ? new Date(message.createdAt).toLocaleTimeString([], {

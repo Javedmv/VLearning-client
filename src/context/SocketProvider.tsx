@@ -200,7 +200,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   const getUserMedia = async () => {
     try {
-      // First try to release any existing tracks
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
         setLocalStream(null);
@@ -732,7 +731,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     const handleUserTyping = ({ chatId, userId, username }: { chatId: string; userId: string; username: string }) => {
       setTypingsUsers((prev) => {
-        // First remove any expired typing indicators
         const now = Date.now();
         const filtered = prev.filter((u) => u.userId !== userId && now - u.timestamp < 5000);
         
@@ -1189,13 +1187,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       const hasPermissions = await checkMediaPermissions();
       if (!hasPermissions) return;
 
-      // Clean up any existing streams
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
         setLocalStream(null);
       }
       
-      // Clear any existing peer connections
       cleanupAllPeerConnections();
 
       // Set status to connecting
@@ -1267,7 +1263,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setCallStatus('connecting');
       setCurrentChatId(chatId);
       
-      // Clean up any existing connections first
       cleanupAllPeerConnections();
       
       // Create an empty audio stream to request microphone access

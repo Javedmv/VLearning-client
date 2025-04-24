@@ -9,6 +9,7 @@ import { RootState } from "../../redux/store";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Pagination from "../../components/common/Pagination";
+import { TOBE } from "../../common/constants";
 
 const CourseHomePage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
@@ -19,7 +20,7 @@ const CourseHomePage: React.FC = () => {
     limit: 3,
     totalPages: 0,
   });
-  const [filters, setFilters] = useState<any>({
+  const [filters, setFilters] = useState<TOBE>({
     search: "",
     sortBy: "relevance", // Default sort
     categories: [],
@@ -28,8 +29,8 @@ const CourseHomePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>(""); // State for the search input
   const Navigate = useNavigate();
 
-  const handleFilterChange = (newFilters: any) => {
-    setFilters((prevFilters: any) => ({
+  const handleFilterChange = (newFilters: TOBE) => {
+    setFilters((prevFilters: TOBE) => ({
       ...prevFilters,
       ...newFilters,
       page: 1, // Reset to first page when filters change
@@ -54,7 +55,7 @@ const CourseHomePage: React.FC = () => {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      setFilters((prevFilters: any) => ({ ...prevFilters, search: searchTerm }));
+      setFilters((prevFilters: TOBE) => ({ ...prevFilters, search: searchTerm }));
     }, 500); 
 
     return () => clearTimeout(delayDebounceFn); 
@@ -73,7 +74,7 @@ const CourseHomePage: React.FC = () => {
   };
 
   const handlePageChange = (page: number) => {
-    setFilters((prevFilters: any) => ({ ...prevFilters, page }));
+    setFilters((prevFilters: TOBE) => ({ ...prevFilters, page }));
   };
 
   return (

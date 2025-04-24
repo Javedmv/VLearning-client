@@ -4,6 +4,7 @@ import { CategoryList } from '../../components/admin/Category/categoryList';
 import { commonRequest, URL } from '../../common/api';
 import { config, configMultiPart } from '../../common/configurations';
 import toast from 'react-hot-toast';
+import { TOBE } from '../../common/constants';
 
 interface Category {
   _id?: string;
@@ -30,7 +31,7 @@ const CategoriesPage: React.FC = () => {
   const fetchCategory = async () => {
     try {
       const res = await commonRequest('GET', `${URL}/course/all-category`, {}, config);
-      const fetchedCategories: DisplayCategory[] = res.data.map((cat: any) => ({
+      const fetchedCategories: DisplayCategory[] = res.data.map((cat: TOBE) => ({
         ...cat,
         imageUrl: cat.imageUrl || '', // Ensure imageUrl is a string
         count: cat.count || 0,

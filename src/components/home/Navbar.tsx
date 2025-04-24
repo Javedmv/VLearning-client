@@ -6,9 +6,10 @@ import { AppDispatch } from "../../redux/store";
 import { logout } from "../../redux/actions/user/userAction";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { TOBE } from "../../common/constants";
 
 interface NavbarProps {
-  User: any;
+  User: TOBE;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ User }) => {

@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { commonRequest, URL } from "../../common/api";
 import { config } from "../../common/configurations";
+import { TOBE } from "../../common/constants";
 
 interface CourseFilterProps {
-  onFilterChange: (filters: any) => void;
+  onFilterChange: (filters: TOBE) => void;
   search: string; // Controlled search term
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // Search change handler
 }

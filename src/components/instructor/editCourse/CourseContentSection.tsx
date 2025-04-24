@@ -1,10 +1,11 @@
 import { Trash2, Plus } from 'lucide-react';
 import { Lesson } from '../../../pages/instructor/EditCoursePage';
+import { TOBE } from '../../../common/constants';
 
 interface CourseContentProps {
   lessons: Lesson[];
   onAddLesson: () => void;
-  onUpdateLesson: (index: number, field: string, value: any) => void;
+  onUpdateLesson: (index: number, field: string, value: TOBE) => void;
   onDeleteLesson: (index: number) => void;
   onVideoUpload: (index: number, file: File) => void;
   onRemoveVideo: (index: number) => void;

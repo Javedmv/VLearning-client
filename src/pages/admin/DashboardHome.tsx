@@ -5,6 +5,7 @@ import { commonRequest, URL } from '../../common/api';
 import toast from 'react-hot-toast';
 import { config } from '../../common/configurations';
 import { Link } from 'react-router-dom';
+import { TOBE } from '../../common/constants';
 
 interface DashboardData {
   totalStudents: number;
@@ -14,7 +15,7 @@ interface DashboardData {
 }
 
 const DashboardHome: React.FC = () => {
-  const [earnings, setEarnings] = useState<any>([]);
+  const [earnings, setEarnings] = useState<TOBE>([]);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalStudents: 0,
     totalCourses: 0,
@@ -22,7 +23,7 @@ const DashboardHome: React.FC = () => {
     totalEnrollments: 0
   });
   const [totalEarnings, setTotalEarnings] = useState<number>(0);
-  const [enrollments, setEnrollments] = useState<any>([]);
+  const [enrollments, setEnrollments] = useState<TOBE>([]);
   const fetchEarnings = async () => {
     try {
       const response = await commonRequest("GET", `${URL}/payment/earnings?role="admin"`);
@@ -31,7 +32,7 @@ const DashboardHome: React.FC = () => {
         return;
       }
       setEarnings(response.data);
-      const total = response.data.reduce((acc: number, transaction: any) => acc + transaction.adminEarnings, 0);
+      const total = response.data.reduce((acc: number, transaction: TOBE) => acc + transaction.adminEarnings, 0);
       setTotalEarnings(total);
     } catch (error) {
       toast.error("Failed to fetch earnings");
@@ -117,7 +118,7 @@ const DashboardHome: React.FC = () => {
             <Link to={"/admin/transactions"} state={{ transactions: earnings }} className="text-sm text-gray-500 hover:underline">Show More</Link>
           </div>
           <div className="space-y-4">
-            {earnings.slice(0, 5).map((earning: any, index: number) => (
+            {earnings.slice(0, 5).map((earning: TOBE, index: number) => (
               <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -147,7 +148,7 @@ const DashboardHome: React.FC = () => {
           <div className="space-y-4">
             {dashboardData.totalEnrollments > 0 ? (
               <div className="space-y-2">
-                {enrollments.map((enrollment: any) => (
+                {enrollments.map((enrollment: TOBE) => (
                   <div key={enrollment._id} className="text-center p-4">
                     <p className="text-sm font-medium text-gray-700">
                       <strong>{enrollment.userId.username}</strong> joined in <strong>{enrollment.courseId.basicDetails.title}</strong>

@@ -1,11 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   ArrowDownUp, 
-  ArrowUpRight, 
-  Wallet, 
-  TrendingUp, 
-  Clock, 
-  DollarSign 
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -14,8 +9,8 @@ interface Transaction {
   amount: number;
   courseId: {
     _id: string;
-    students: any[]; // Replace 'any' with a more specific type if available
-    basicDetails: any; // Replace 'any' with a more specific type if available
+    students: any[]; 
+    basicDetails: any;
   };
   createdAt: string;
   customerEmail: string;

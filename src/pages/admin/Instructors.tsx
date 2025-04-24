@@ -6,6 +6,7 @@ import { config } from '../../common/configurations';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/common/Pagination';
+import { TOBE } from '../../common/constants';
 
 interface Instructor {
   username: string;
@@ -27,7 +28,7 @@ interface Instructor {
 }
 
 const Instructors: React.FC = () => {
-  const { user } = useOutletContext<{ user: any }>();
+  const { user } = useOutletContext<{ user: TOBE }>();
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [meta, setMeta] = useState({page: 1, limit: 8, total: 0, totalPages: 0});
 

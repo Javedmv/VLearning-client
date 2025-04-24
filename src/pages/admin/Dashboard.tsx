@@ -2,9 +2,10 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import HeaderAdmin from "./HeaderAdmin"
 import Sidebar from './Sidebar';
+import { TOBE } from '../../common/constants';
 
 interface DashboardProps {
-  user:any
+  user:TOBE
 }
 
 const Dashboard:React.FC<DashboardProps> = ({user}) => {

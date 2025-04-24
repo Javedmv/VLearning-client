@@ -2,9 +2,10 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from '../../components/home/Navbar';
+import { TOBE } from '../../common/constants';
 
 interface DashboardProps {
-    user:any
+    user:TOBE
   }
 
   const DashboardLayout: React.FC<DashboardProps> = ({ user }) => {

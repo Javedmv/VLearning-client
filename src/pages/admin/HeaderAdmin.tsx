@@ -1,8 +1,9 @@
 import React from 'react';
 import { Bell, Search, User } from 'lucide-react';
+import { TOBE } from '../../common/constants';
 
 interface HeaderProps {
-  user:any
+  user:TOBE
 }
 
 const Header:React.FC<HeaderProps> = ({user}) => {

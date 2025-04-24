@@ -2,11 +2,12 @@ import React from 'react';
 import ISO6391 from 'iso-639-1';
 import { Category } from '../../../pages/instructor/EditCoursePage';
 import toast from 'react-hot-toast';
+import { TOBE } from '../../../common/constants';
 
 interface BasicDetailsProps {
-  courseData: any;
+  courseData: TOBE;
   categories: Category[];
-  setCourseData: (data: any) => void;
+  setCourseData: (data: TOBE) => void;
   onRemoveThumbnail: () => void;
 }
 
@@ -44,7 +45,7 @@ export const BasicDetailsSection = ({
             const thumbnailPreview = URL.createObjectURL(file);
     
             // Update course data state
-            setCourseData((prev:any) => ({
+            setCourseData((prev:TOBE) => ({
                 ...prev,
                 basicDetails: {
                   ...prev.basicDetails,

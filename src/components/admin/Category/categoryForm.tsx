@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, X } from 'lucide-react'; // Make sure to import these icons from lucide-react
+import { TOBE } from '../../../common/constants';
 
 interface CategoryFormProps {
-  onSubmit: (category: any) => void;
+  onSubmit: (category: TOBE) => void;
 }
 
 export const CategoryForm: React.FC<CategoryFormProps> = ({ onSubmit }) => {

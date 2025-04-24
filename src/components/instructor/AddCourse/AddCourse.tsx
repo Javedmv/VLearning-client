@@ -5,6 +5,7 @@ import ThumbnailUpload from './AddCourse/ThumbnailUpload';
 import BasicDetailsForm from './AddCourse/BasicDetailsForm';
 import LearningPoints from './AddCourse/LearningPoints';
 import { BasicDetails } from '../../../types/Courses';
+import { TOBE } from '../../../common/constants';
 
 interface AddCourseProps {
   onSubmit: (values: BasicDetails) => void; // Accept BasicDetails here
@@ -17,7 +18,7 @@ const AddCourse: React.FC<AddCourseProps> = ({ onSubmit, onNext, courseData }) =
 
   const handleThumbnailChange = (
     file: File,
-    setFieldValue: (field: string, value: any) => void
+    setFieldValue: (field: string, value: TOBE) => void
   ) => {
     const reader = new FileReader();
   
@@ -50,7 +51,7 @@ const AddCourse: React.FC<AddCourseProps> = ({ onSubmit, onNext, courseData }) =
         initialValues={initialValues}
         validationSchema={AddCourseSchema}
         onSubmit={(values, { setSubmitting }) => {
-          const cleanedValues:any = {
+          const cleanedValues:TOBE = {
             ...values,
             whatWillLearn: values.whatWillLearn.filter(point => point.trim() !== ''),
           };

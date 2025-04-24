@@ -3,6 +3,7 @@ import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import FormField from '../common/Form/FormField';
 import FileUpload from '../common/Form/FileUpload';
+import { TOBE } from '../../common/constants';
 
 const validationSchema = Yup.object({
   profession: Yup.string().required('Profession is required'),
@@ -13,7 +14,7 @@ const validationSchema = Yup.object({
 });
 
 interface ProfileFormProps {
-  onSubmit: (values: any) => void;
+  onSubmit: (values: TOBE) => void;
   onCancel: () => void;
 }
 

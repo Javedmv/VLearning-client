@@ -6,13 +6,14 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { config } from '../../common/configurations';
+import { TOBE } from '../../common/constants';
 
 interface VideoPlayerProps {
   videoUrl: string;
   lessonId: string;
   enrollmentId: string;
-  course: any;
-  setCourse: React.Dispatch<React.SetStateAction<any>>;
+  course: TOBE;
+  setCourse: React.Dispatch<React.SetStateAction<TOBE>>;
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ 
@@ -128,7 +129,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         "POST",
         `${URL}/course/progress/${enrollmentId}/complete-lesson`,
         {
-          lessonObject: course.courseId.courseContent.lessons.find((lesson: any) => lesson._id === lessonId),
+          lessonObject: course.courseId.courseContent.lessons.find((lesson: TOBE) => lesson._id === lessonId),
           allLessons: course.courseId.courseContent.lessons
         },
         config
@@ -141,7 +142,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // Find the next lesson and update the course state
         if (course && course.courseId && course.courseId.courseContent) {
           const lessons = course.courseId.courseContent.lessons;
-          const currentIndex = lessons.findIndex((lesson: any) => lesson._id === lessonId);
+          const currentIndex = lessons.findIndex((lesson: TOBE) => lesson._id === lessonId);
           
           if (currentIndex >= 0 && currentIndex < lessons.length - 1) {
             const nextLessonId = lessons[currentIndex + 1]._id;

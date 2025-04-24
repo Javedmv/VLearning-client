@@ -40,12 +40,13 @@ const LearningCourseDetail = React.lazy(() => import('./pages/user/LearningCours
 import PaymentHistory from './pages/user/payment/paymentHistory';
 import ChatPage from './pages/instructor/ChatPage';
 import Transactions from './pages/admin/Transactions';
+import { TOBE } from './common/constants';
 const EarningsPage = React.lazy(() => import('./pages/instructor/EarningsPage'));
 const AboutUs = React.lazy(() => import('./pages/common/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/common/ContactUs'));
 
 // Role-Based Redirect Component
-const RoleBasedRedirect = ({ user }: { user: any }) => {
+const RoleBasedRedirect = ({ user }: { user: TOBE }) => {
   if (!user) return null;
   if (user.isNewUser) return <Navigate to="/user-form" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
@@ -53,7 +54,7 @@ const RoleBasedRedirect = ({ user }: { user: any }) => {
 };
 
 // Define the routes using createBrowserRouter
-const router = (user: any) =>
+const router = (user: TOBE) =>
   createBrowserRouter(
     [
       {

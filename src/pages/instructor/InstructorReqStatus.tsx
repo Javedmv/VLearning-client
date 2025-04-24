@@ -7,6 +7,7 @@ import Modal from '../../components/common/Modal';
 import trimValuesToFormData from '../../common/trimValues';
 import toast from 'react-hot-toast';
 import { reapplyInstructor } from '../../redux/actions/user/userAction';
+import { TOBE } from '../../common/constants';
 
 interface StatusCardProps {
   status: 'requested' | 'approved' | 'rejected';
@@ -69,7 +70,7 @@ const InstructorRequestStatus: React.FC = () => {
   const [currentUser, setCurrentUser] = useState(user);
 
   useEffect(() => {
-    setCurrentUser((prevUser: any) => ({
+    setCurrentUser((prevUser: TOBE) => ({
       ...prevUser,
       ...user,
     }));
@@ -80,7 +81,7 @@ const InstructorRequestStatus: React.FC = () => {
       const userCredentials = trimValuesToFormData(values);
       const result = await dispatch(reapplyInstructor(userCredentials));
       if (result.meta.requestStatus === 'fulfilled') {
-        setCurrentUser((prevUser: any) => ({
+        setCurrentUser((prevUser: TOBE) => ({
           ...prevUser,
           ...result.payload,
         }));

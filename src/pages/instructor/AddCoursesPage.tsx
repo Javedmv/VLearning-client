@@ -12,6 +12,7 @@ import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { TOBE } from '../../common/constants';
 
 const STEPS = ['Basic Details', 'Course Content', 'Pricing', 'Preview'];
 
@@ -90,7 +91,7 @@ const AddCoursePage: React.FC = () => {
       const updatedLessons = await uploadLessonsToS3(courseData);
   
       // Map and sanitize lessons
-      const sanitizedLessons = updatedLessons.courseContent.lessons.map((lesson: any) => {
+      const sanitizedLessons = updatedLessons.courseContent.lessons.map((lesson: TOBE) => {
         const { videoPreview, ...lessonWithoutPreview } = lesson; // Remove videoPreview
         return {
           ...lessonWithoutPreview,

@@ -13,8 +13,13 @@ export const signUpUser = createAsyncThunk("user/signUpUser", async(userCredenti
             config
         );
         return response;
-    } catch (error:any) {
-        return handleError(error, rejectWithValue);    
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+          return handleError(error, rejectWithValue);
+        } else {
+          const unknownError: Error = new Error('An unknown error occurred');
+          return handleError(unknownError, rejectWithValue);
+        }
     }
 });
 
@@ -29,8 +34,15 @@ export const loginUser = createAsyncThunk("user/login", async(userCredentials: a
         );
         console.log(response,"response return in redux")
         return response;
-    } catch (error:any) {
-        return rejectWithValue(error.payload?.response?.data?.message || "Login failed");
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+          return rejectWithValue(error.message || 'Login failed');
+        } else if (error && typeof error === 'object' && 'payload' in error) {
+          const message = (error as { payload?: { response?: { data?: { message?: string } } } }).payload?.response?.data?.message;
+          return rejectWithValue(message || 'Login failed');
+        } else {
+          return rejectWithValue('Login failed');
+        }
     }
 })
 
@@ -43,9 +55,14 @@ export const getUserDataFirst = createAsyncThunk("user/getUserDataFirst", async(
             config
         )
         return response
-    } catch (error) {
-        return rejectWithValue(error)
-    }
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+          return rejectWithValue(error);
+        } else {
+          return rejectWithValue('An unknown error occurred');
+        }
+      }
+      
 })
 
 export const logout = createAsyncThunk("user/logout", async( _ , {rejectWithValue}) => {
@@ -109,7 +126,12 @@ export const googleLoginUser = createAsyncThunk("user/googleLogin", async(userCr
         );
         console.log(response,"response return in redux")
         return response;
-    } catch (error:any) {
-        return rejectWithValue(error.payload?.response?.data?.message || "Login failed");
-    }
+    } catch (error: unknown) {
+        if (error instanceof Error && 'payload' in error) {
+          return rejectWithValue((error as { payload?: { response?: { data?: { message?: string } } } }).payload?.response?.data?.message || "Login failed");
+        } else {
+          return rejectWithValue("Login failed");
+        }
+      }
+      
 })

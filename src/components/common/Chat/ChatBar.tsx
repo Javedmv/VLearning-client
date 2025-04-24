@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import ParticipantsModal from "./ParticipantsModal";
 import StreamingModal from "./StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
+import { TOBE } from "../../../common/constants";
 
 enum ContentType {
   TEXT = "text",
@@ -19,7 +20,7 @@ enum ContentType {
 }
 
 interface ChatBarProp {
-  enrollment: any;
+  enrollment: TOBE;
 }
 
 interface Message {
@@ -185,7 +186,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         setIsSending(false);
       };
 
-      const handleMessageError = (error: any) => {
+      const handleMessageError = (error: TOBE) => {
         console.error("Message error:", error);
         setIsSending(false);
         toast.error("Failed to send message. Please try again.");
@@ -353,7 +354,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     return `${currentChatTypingUsers.length} people are typing...`;
   };
 
-  const handleEmojiClick = (emojiData: any) => {
+  const handleEmojiClick = (emojiData: TOBE) => {
     setInput(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };

@@ -13,6 +13,7 @@ import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
 import { loadStripe } from '@stripe/stripe-js';
+import { TOBE } from '../../common/constants';
 
 // In your frontend Lesson interface
 export interface Lesson {
@@ -38,7 +39,7 @@ const CourseDetailPage: React.FC = () => {
     try {
       const res = await commonRequest('GET', `${URL}/course/details/${courseId}`, {}, config);
 
-      const lessons = res.data.courseContent.lessons.map((lesson: any) => ({
+      const lessons = res.data.courseContent.lessons.map((lesson: TOBE) => ({
         ...lesson,
         _id: lesson._id ?? '',
       }));

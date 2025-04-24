@@ -4,11 +4,12 @@ import { IndianRupee } from 'lucide-react'; // Make sure to import IndianRupee
 import { commonRequest, URL } from '../../common/api';
 import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
+import { TOBE } from '../../common/constants';
 
 const DashboardPage: React.FC = () => {
-  const [enrollment, setEnrollment] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [totalStudents, setTotalStudents] = useState<any[]>([]);
+  const [enrollment, setEnrollment] = useState<TOBE[]>([]);
+  const [courses, setCourses] = useState<TOBE[]>([]);
+  const [totalStudents, setTotalStudents] = useState<TOBE[]>([]);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [totalCourses, setTotalCourses] = useState<number>(0);
 
@@ -25,7 +26,7 @@ const DashboardPage: React.FC = () => {
         setCourses(response.data.courses);
         
         // Calculate revenue with proper type checking
-        const calculatedRevenue = response.data.enrollments.reduce((acc: number, enrollment: any) => {
+        const calculatedRevenue = response.data.enrollments.reduce((acc: number, enrollment: TOBE) => {
           console.log(enrollment.instructorEarnings,"enrollment.instructorEarnings"); 
           const earnings = Number(enrollment.instructorEarnings) || 0;
           return acc + earnings;
@@ -34,9 +35,9 @@ const DashboardPage: React.FC = () => {
         setTotalRevenue(calculatedRevenue);
         setTotalCourses(response.data.courses.length);
         
-        setTotalStudents((prev:any) => {
+        setTotalStudents((prev:TOBE) => {
           // Create a flattened array of all student IDs from all courses
-          const allStudentIds = response.data.courses.flatMap((course: any) => 
+          const allStudentIds = response.data.courses.flatMap((course: TOBE) => 
             course.students || []
           );
           
@@ -46,7 +47,7 @@ const DashboardPage: React.FC = () => {
           // Add only new student IDs to the set
           const updatedStudentIds = [...prev];
           
-          allStudentIds.forEach((studentId: any) => {
+          allStudentIds.forEach((studentId: TOBE) => {
             if (!existingIds.has(studentId)) {
               updatedStudentIds.push(studentId);
               existingIds.add(studentId); // Update the lookup set
@@ -149,7 +150,7 @@ const DashboardPage: React.FC = () => {
         <div className="p-4">
           {enrollment.length > 0 ? (
             <ul className="space-y-3">
-              {enrollment.map((enrollment:any) => (
+              {enrollment.map((enrollment:TOBE) => (
                 <li key={enrollment?._id} className="text-fuchsia-900 p-2 border-b border-fuchsia-100 last:border-0">
                   New student enrolled in <strong>{enrollment?.courseId?.basicDetails?.title}</strong>
                 </li>
