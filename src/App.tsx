@@ -41,6 +41,7 @@ import PaymentHistory from './pages/user/payment/paymentHistory';
 import ChatPage from './pages/instructor/ChatPage';
 import Transactions from './pages/admin/Transactions';
 import { TOBE } from './common/constants';
+import { SocketProvider } from './context/SocketProvider';
 const EarningsPage = React.lazy(() => import('./pages/instructor/EarningsPage'));
 const AboutUs = React.lazy(() => import('./pages/common/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/common/ContactUs'));
@@ -169,7 +170,7 @@ const router = (user: TOBE) =>
           ),
         children: [
           { path: '', element: <DashboardHome /> },
-          { path: 'students', element: <Students /> },
+          { path: 'students', element:<SocketProvider><Students /> </SocketProvider> },
           { path: 'instructors', element: <Instructors /> },
           { path: 'category', element: <CategoriesPage /> },
           { path: 'courses', element: <Courses /> },

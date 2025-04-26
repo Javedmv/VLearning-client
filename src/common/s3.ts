@@ -35,10 +35,12 @@ export const uploadLessonsToS3 = async (courseData: CourseData) => {
     const safeThumbnailName = `thumbnail_${title.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${Date.now()}`;
     const thumbnailPath = `courseThumbnail/${safeThumbnailName}`;
 
+    const thumbnailBuffer = await thumbnail.arrayBuffer();
+    const thumbnailUint8Array = new Uint8Array(thumbnailBuffer);
     const thumbnailParams = {
       Bucket: S3_BUCKET,
       Key: thumbnailPath,
-      Body: thumbnail, // File object
+      Body:thumbnailUint8Array, // Convert to Buffer
       ContentType: thumbnail.type || 'image/png',
     };
 
@@ -63,10 +65,12 @@ export const uploadLessonsToS3 = async (courseData: CourseData) => {
         const fileName = `${safeTitle}_${Date.now()}`;
         const filePath = `courses/${fileName}`;
 
+        const videoBuffer = await videoUrl.arrayBuffer();
+        const videoUint8Array = new Uint8Array(videoBuffer);
         const params = {
           Bucket: S3_BUCKET,
           Key: filePath,
-          Body: videoUrl, // File object
+          Body: videoUint8Array, // Convert to Buffer
           ContentType: videoUrl.type || 'video/mp4',
         };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../../types/Users';
+import { useNavigate } from 'react-router-dom';
 
 interface InstructorListProps {
   instructors: User[];
@@ -9,6 +10,7 @@ const InstructorList: React.FC<InstructorListProps> = ({ instructors }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -58,6 +60,10 @@ const InstructorList: React.FC<InstructorListProps> = ({ instructors }) => {
     };
   }, [instructors.length, isVisible]);
 
+  const handleInstructorClick = (id: string) => {
+    navigate(`/instructor/${id}`);
+  };
+
   // Calculate visible instructors
   const visibleInstructors = instructors.slice(
     currentIndex,
@@ -85,6 +91,7 @@ const InstructorList: React.FC<InstructorListProps> = ({ instructors }) => {
               <div
                 key={instructor._id}
                 className="bg-white rounded-xl shadow-md overflow-hidden p-6 flex flex-col items-center border border-gray-200 hover:shadow-xl transition-shadow duration-300"
+                onClick={() => handleInstructorClick(instructor._id)}
               >
                 <div className="mb-4">
                   <img
