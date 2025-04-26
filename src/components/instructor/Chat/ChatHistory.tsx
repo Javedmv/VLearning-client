@@ -8,6 +8,7 @@ import { RootState } from "../../../redux/store";
 import { toast } from "react-hot-toast";
 import ParticipantsModal from "../../common/Chat/ParticipantsModal";
 import StreamingModal from "../../common/Chat/StreamingModal";
+import type { StreamingModalProps } from "../../common/Chat/StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
 import { TOBE } from "../../../common/constants";
 
@@ -62,12 +63,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     socket,
     typingUsers,
     handleTyping,
-    // Stream props
-    initiateStream,
-    endStream,
-    isStreaming,
-    streamViewers,
-    streamViewerNames,
+    activeStreams,
   } = useSocketContext();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -79,10 +75,16 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  const [activeRoomUrl, setActiveRoomUrl] = useState<string | null>(null);
+  const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
+  const [isStreamLoading, setIsStreamLoading] = useState<boolean>(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const instructorName = user.username;
   const instructorId = user._id;
+
+  const isStreamActiveInContext = activeStreams?.has(chat?._id);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -97,20 +99,23 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       const handleNewMessage = (newMessage: Message) => {
         console.log("Received message:", newMessage);
         setMessages((prev) => {
-          const exists = prev.some(
-            (m) =>
-              m._id === newMessage._id ||
-              (m.content === newMessage.content &&
-                m.sender === newMessage.sender &&
+          const newMsgSenderId = typeof newMessage.sender === 'string' ? newMessage.sender : newMessage.sender?._id;
+          const exists = prev.some((m) => {
+            const mSenderId = typeof m.sender === 'string' ? m.sender : m.sender?._id;
+            return (
+                m._id === newMessage._id ||
+                (m.content === newMessage.content &&
+                mSenderId === newMsgSenderId &&
                 m.createdAt === newMessage.createdAt)
-          );
+            );
+          });
           if (exists) return prev;
           return [...prev, newMessage];
         });
         setTimeout(scrollToBottom, 100);
       };
 
-      const handleMessageSent = (data: { success: boolean; messageId: string }) => {
+      const handleMessageSent = (data: { success: boolean; messageId?: string }) => {
         console.log("Message sent confirmation:", data);
         setIsSending(false);
       };
@@ -131,7 +136,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         socket.off("messageError", handleMessageError);
       };
     }
-  }, [socket, chat?._id, instructorId, user._id]);
+  }, [socket, chat?._id, instructorId]);
 
   useEffect(() => {
     let typingInterval: NodeJS.Timeout | null = null;
@@ -149,21 +154,37 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   }, [isInputFocused, socket, chat?._id, newMessage, handleTyping]);
 
   async function fetchMessages(chatId: string) {
+    if (!chatId) return;
     try {
       setLoading(true);
       const response = await commonRequest("GET", `${URL}/chat/messages/${chatId}`, {}, config);
-      console.log("response", response.data);
-      setMessages(response.data);
-      setLoading(false);
+      console.log("Message fetch response", response);
+      if(response.success && Array.isArray(response.data)) {
+          setMessages(response.data);
+      } else {
+          setMessages([]);
+          console.error("Failed to fetch messages or invalid data format:", response.message);
+      }
     } catch (error) {
       console.error("Error fetching messages:", error);
+      setMessages([]);
+      toast.error("Failed to load messages.");
+    } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (!chat?._id) return;
-    fetchMessages(chat._id);
+    setMessages([]);
+    setActiveRoomUrl(null);
+    setActiveMeetingId(null);
+    setShowStreamingModal(false);
+    if (chat?._id) {
+      fetchMessages(chat._id);
+    }
+    if (activeMeetingId && chat?._id) {
+        handleStopStream(true);
+    }
   }, [chat?._id]);
 
   useEffect(() => {
@@ -211,7 +232,6 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     }
   };
 
-  // Function to get username from messages based on sender ID
   const getUsernameFromMessages = (senderId: string): string => {
     const messageWithUsername = messages.find((m) => {
       const mSenderId = typeof m.sender === "string" ? m.sender : m.sender?._id;
@@ -224,7 +244,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
              messageWithUsername.senderName || 
              "Unknown User";
     }
-    return `User-${senderId.substring(0, 4)}`; // Fallback if no username found
+    return `User-${senderId.substring(0, 4)}`;
   };
 
   const getSenderName = (message: Message): string => {
@@ -234,11 +254,17 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       return "You";
     }
 
+    if (typeof message.sender === "object" && message.sender) {
+        return message.sender.username || `${message.sender.firstName || ''} ${message.sender.lastName || ''}`.trim() || `User-${senderId?.substring(0,4)}`;
+    }
+    if(message.senderName) return message.senderName;
+
     return getUsernameFromMessages(senderId!);
   };
 
   const getSenderInitials = (message: Message): string => {
     const name = getSenderName(message);
+    if (!name || name === "You") return "U";
     return name[0].toUpperCase();
   };
 
@@ -262,7 +288,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   };
 
   const getTypingMessage = () => {
-    const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chat?._id);
+    const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chat?._id && u.userId !== user._id);
     if (currentChatTypingUsers.length === 0) return "";
     if (currentChatTypingUsers.length === 1) return `${currentChatTypingUsers[0].username} is typing...`;
     if (currentChatTypingUsers.length === 2)
@@ -270,38 +296,77 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     return `${currentChatTypingUsers.length} people are typing...`;
   };
 
-  // Create participants list with usernames from messages
   const getParticipantsWithUsernames = () => {
+    if (!Array.isArray(chat?.users)) return []; 
     return chat.users.map((userId) => ({
       _id: userId,
-      username: userId === instructorId ? instructorName : getUsernameFromMessages(userId),
+      username: userId === instructorId ? (instructorName || 'Instructor') : (getUsernameFromMessages(userId) || `User...${userId.slice(-4)}`),
     }));
   };
 
-  // Clean up resources when component unmounts
-  useEffect(() => {
-    return () => {
-      if (isStreaming) {
-        endStream(chat._id);
-      }
-    };
-  }, []);
+  const handleStartStream = async () => {
+    if (!chat?._id || isStreamLoading) return;
+    
+    setIsStreamLoading(true);
+    try {
+      console.log(`Requesting to start stream for chat: ${chat._id}`);
+      const response = await commonRequest(
+        "POST",
+        `${URL}/chat/streaming/start`, 
+        { chatId: chat._id },
+        config
+      );
 
-  const handleStartStream = () => {
-    if (isStreaming) {
-      // Only end the stream if we're the one streaming
-      endStream(chat._id);
-      setShowStreamingModal(false);
-    } else {      
-      try {
-        initiateStream(chat._id);
+      console.log("Start stream response:", response);
+
+      if (response.success && response.data?.hostRoomUrl && response.data?.meetingId) {
+        setActiveRoomUrl(response.data.hostRoomUrl);
+        setActiveMeetingId(response.data.meetingId);
         setShowStreamingModal(true);
-      } catch (error) {
-        console.error("Error starting stream:", error);
-        toast.error("Failed to start stream. Please try again.");
-        setShowStreamingModal(false);
+        toast.success("Stream started successfully!");
+      } else {
+        throw new Error(response.message || "Failed to get stream details from server");
       }
+    } catch (error: any) {
+      console.error("Error starting stream:", error);
+      toast.error(`Failed to start stream: ${error.message || "Unknown error"}`);
+      setActiveRoomUrl(null);
+      setActiveMeetingId(null);
+      setShowStreamingModal(false);
+    } finally {
+        setIsStreamLoading(false);
     }
+  };
+
+  const handleStopStream = async (isCleanup = false) => {
+      if (!chat?._id || !activeMeetingId || isStreamLoading) return; 
+
+      setIsStreamLoading(true);
+      try {
+          console.log(`Requesting to stop stream for chat: ${chat._id}, meeting: ${activeMeetingId}`);
+          const response = await commonRequest(
+              "POST",
+              `${URL}/chat/streaming/stop/${chat._id}`,
+              { meetingId: activeMeetingId },
+              config
+          );
+
+          console.log("Stop stream response:", response);
+
+          if (response.success) {
+              if (!isCleanup) toast.success("Stream stopped successfully!");
+          } else {
+              throw new Error(response.message || "Server failed to stop stream, closing locally.");
+          }
+      } catch (error: any) {
+          console.error("Error stopping stream:", error);
+          if (!isCleanup) toast.error(`Failed to stop stream: ${error.message || "Unknown error"}`);
+      } finally {
+          setActiveRoomUrl(null);
+          setActiveMeetingId(null);
+          setShowStreamingModal(false);
+          setIsStreamLoading(false);
+      }
   };
 
   const handleEmojiClick = (emojiData: TOBE) => {
@@ -322,18 +387,19 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
     );
   }
 
+  const isCurrentlyStreaming = !!activeRoomUrl;
+
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-200 to-indigo-50">
-      {/* Chat header */}
-      <div className="p-4 bg-white/80 shadow-sm backdrop-blur-sm flex items-center justify-between">
+    <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-200 to-indigo-50 h-full">
+      <div className="p-4 bg-white/80 shadow-sm backdrop-blur-sm flex items-center justify-between flex-shrink-0">
         <div>
           <h2 className="text-xl font-bold text-gray-900">{chat.groupName}</h2>
           <button
             onClick={() => setIsParticipantsModalOpen(true)}
             className="flex items-center text-sm text-gray-500 hover:text-gray-700 hover:underline transition-colors duration-200"
           >
-            <span>{chat.users.length} participants</span>
-            {typingUsers.filter((u) => u.chatId === chat?._id).length > 0 && (
+            <span>{Array.isArray(chat.users) ? chat.users.length : 0} participants</span>
+            {typingUsers.filter((u) => u.chatId === chat?._id && u.userId !== user._id).length > 0 && (
               <span className="ml-2 italic text-gray-600 animate-pulse">
                 • {getTypingMessage()}
               </span>
@@ -343,11 +409,12 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         <div className="flex space-x-2">
           {user.role === "instructor" && (
             <button
-              onClick={handleStartStream}
-              className={`p-2 transition-colors ${
-                isStreaming ? "text-red-500 hover:text-red-700" : "text-gray-500 hover:text-gray-700"
+              onClick={isCurrentlyStreaming ? () => handleStopStream() : handleStartStream}
+              disabled={isStreamLoading}
+              className={`p-2 transition-colors disabled:opacity-50 disabled:cursor-wait ${
+                isCurrentlyStreaming ? "text-red-500 hover:text-red-700" : "text-gray-500 hover:text-gray-700"
               }`}
-              title={isStreaming ? "End Live Stream" : "Start Live Stream"}
+              title={isCurrentlyStreaming ? "End Live Stream" : "Start Live Stream"}
             >
               <Cast className="w-6 h-6" />
             </button>
@@ -355,61 +422,48 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
         </div>
       </div>
 
-      {/* Participants Modal */}
       <ParticipantsModal
         isOpen={isParticipantsModalOpen}
         onClose={() => setIsParticipantsModalOpen(false)}
         participants={getParticipantsWithUsernames()}
       />
 
-      {/* Streaming modal */}
-      {showStreamingModal && (
+      {showStreamingModal && activeRoomUrl && (
         <StreamingModal
-          chatId={chat._id}
-          onClose={() => {
-            endStream(chat._id);
-            setShowStreamingModal(false);
-          }}
+          roomUrl={activeRoomUrl}
+          onClose={() => handleStopStream()}
           isInstructor={true}
         />
       )}
 
-      {/* Messages area */}
       <div
         className="flex-1 overflow-y-auto p-6"
-        style={{ display: "flex", flexDirection: "column", height: "100%" }}
+        style={{ display: "flex", flexDirection: "column" }}
       >
         <div className="space-y-6 flex-grow">
           {loading ? (
-            <div className="flex justify-center">
+            <div className="flex justify-center items-center h-full">
               <p className="text-gray-500">Loading messages...</p>
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex justify-center">
+            <div className="flex justify-center items-center h-full">
               <p className="text-gray-500">No messages yet. Start the conversation!</p>
             </div>
           ) : (
             messages.map((message, index) => {
-              const isOwnMessage =
-                typeof message.sender === "string"
-                  ? message.sender === user._id
-                  : message.sender._id === user._id;
+              const senderId = typeof message.sender === "string" ? message.sender : message.sender?._id;
+              const isOwnMessage = senderId === user._id;
 
-              const isSameSender =
-                index > 0 &&
-                (typeof message.sender === "string"
-                  ? message.sender === messages[index - 1].sender
-                  : message.sender._id === (messages[index - 1].sender as TOBE)._id);
+              const prevSender = index > 0 ? messages[index - 1].sender : null;
+              const prevSenderId = prevSender ? (typeof prevSender === "string" ? prevSender : (typeof prevSender === 'object' ? prevSender?._id : null)) : null;
+              const isSameSender = senderId === prevSenderId;
 
               const timestamp = message.createdAt
                 ? new Date(message.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })
-                : new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
+                : "";
 
               const showDateHeader =
                 index === 0 ||
@@ -429,7 +483,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                   )}
                   <div className="w-full flex flex-col items-center">
                     {message.type === "newUser" ? (
-                      <div className="bg-gray-200 text-gray-600 text-sm italic px-4 py-2 rounded-lg shadow-sm">
+                      <div className="bg-gray-200 text-gray-600 text-sm italic px-4 py-2 rounded-lg shadow-sm text-center w-auto max-w-md mx-auto">
                         {message.content}
                       </div>
                     ) : (
@@ -443,9 +497,9 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                             </span>
                           </div>
                         )}
-                        {!isOwnMessage && isSameSender && <div className="w-6 mr-2" />}
+                        {!isOwnMessage && isSameSender && <div className="w-6 mr-2 flex-shrink-0" />}
                         <div
-                          className={`max-w-[70%] rounded-xl py-2 px-3 shadow-sm transition-shadow group-hover:shadow-md ${
+                          className={`max-w-[70%] rounded-xl py-2 px-3 shadow-sm transition-shadow group-hover:shadow-md ${isOwnMessage ? "ml-auto" : "mr-auto"} ${
                             isOwnMessage
                               ? "bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 text-white"
                               : "bg-white text-gray-900"
@@ -453,24 +507,24 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
                         >
                           {!isSameSender && (
                             <p
-                              className={`text-[11px] font-medium ${
+                              className={`text-[11px] font-medium mb-0.5 ${
                                 isOwnMessage ? "text-gray-300" : "text-gray-500"
                               } ${isOwnMessage ? "text-right" : "text-left"}`}
                             >
                               {getSenderName(message)}
                             </p>
                           )}
-                          <p className="text-sm leading-snug">{message.content}</p>
-                          <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+                          <p className="text-sm leading-snug break-words">{message.content}</p>
+                          <div className={`flex items-center mt-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
                             <p
                               className={`text-[10px] ${
-                                isOwnMessage ? "text-blue-100" : "text-gray-500"
+                                isOwnMessage ? "text-fuchsia-100" : "text-gray-500"
                               }`}
                             >
                               {timestamp}
                             </p>
                             {isOwnMessage && (
-                              <span className="ml-1 text-[10px] text-blue-100">✓</span>
+                              <span className="ml-1 text-[10px] text-fuchsia-100">✓</span>
                             )}
                           </div>
                         </div>
@@ -482,11 +536,10 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
             })
           )}
         </div>
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-0" />
       </div>
 
-      {/* Message input area */}
-      <div className="p-6 bg-white/80 backdrop-blur-sm border-t border-gray-300">
+      <div className="p-6 bg-white/80 backdrop-blur-sm border-t border-gray-300 flex-shrink-0">
         <div className="flex items-center space-x-4 relative">
           {showEmojiPicker && (
             <div className="absolute bottom-16 left-0 z-10">
@@ -515,13 +568,13 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
             </button>
           </div>
           <button
-            className={`p-4 rounded-full ${
+            className={`p-4 rounded-full transition-colors duration-200 flex items-center justify-center ${
               newMessage.trim()
-                ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
             }`}
             onClick={sendMessage}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || isSending}
           >
             <Send className="w-5 h-5" />
           </button>
