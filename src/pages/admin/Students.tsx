@@ -83,6 +83,9 @@ const Students: React.FC = () => {
             : student
           )
         );
+
+        console.log("socket", socket);
+        
         
         // If blocking a user, emit socket event to force logout
         if (shouldBlock && socket) {

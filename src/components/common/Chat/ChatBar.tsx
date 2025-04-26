@@ -94,6 +94,8 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   const [showStreamingModal, setShowStreamingModal] = useState(false);
   const [isJoiningStream, setIsJoiningStream] = useState<boolean>(false);
   const [viewerRoomUrl, setViewerRoomUrl] = useState<string | null>(null);
+  const [isApiStreamActive, setIsApiStreamActive] = useState<boolean>(false);
+  const [apiRoomUrl, setApiRoomUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && courseId) {
@@ -104,6 +106,8 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         setParticipants([]);
         setShowStreamingModal(false);
         setViewerRoomUrl(null);
+        setIsApiStreamActive(false);
+        setApiRoomUrl(null);
     }
   }, [isOpen, courseId]);
 
@@ -133,6 +137,27 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
             console.error("Failed to fetch messages:", messagesResponse.message);
             setChatMessages([]);
         }
+
+        try {
+            console.log(`Fetching chat/stream details for chat: ${chatId}`);
+            const streamDetailsResponse = await commonRequest("GET", `${URL}/chat/chats/${chatId}/status`, null, config);
+            console.log("Chat/Stream details response:", streamDetailsResponse);
+
+            if (streamDetailsResponse.success && streamDetailsResponse.data) {
+                setIsApiStreamActive(streamDetailsResponse.data.isStreamActive || false);
+                setApiRoomUrl(streamDetailsResponse.data.wherebyRoomUrl || null);
+            } else {
+                console.warn("Could not fetch stream details:", streamDetailsResponse.message);
+                setIsApiStreamActive(false);
+                setApiRoomUrl(null);
+            }
+        } catch (streamError: any) {
+            console.error("Error fetching stream details:", streamError);
+            toast.error(streamError.response?.data?.message || "Failed to load stream status");
+            setIsApiStreamActive(false);
+            setApiRoomUrl(null);
+        }
+
       } else {
         console.error("Failed to fetch chat data:", chatResponse.message);
         setChatData(null); 
@@ -237,29 +262,20 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   }, [chatMessages, isOpen]);
 
   const handleJoinStream = async () => {
-    if (!chatData?._id || isJoiningStream) return;
+    if (!apiRoomUrl || isJoiningStream) {
+        console.warn("No active stream URL found or already joining.");
+        toast.error("Stream is not available or cannot be joined at this moment.");
+        return;
+    }
 
     setIsJoiningStream(true);
     try {
-        console.log(`Fetching stream details for chat: ${chatData._id}`);
-        const response = await commonRequest(
-            "GET",
-            `${URL}/chat/streaming/details/${chatData._id}`,
-            null,
-            config
-        );
-        console.log("Stream details response:", response);
-
-        if (response.success && response.data?.isActive && response.data?.roomUrl) {
-            setViewerRoomUrl(response.data.roomUrl);
-            setShowStreamingModal(true);
-            toast.success("Joining stream...");
-        } else {
-            throw new Error(response.data?.message || "Stream is not active or details are unavailable.");
-        }
-    } catch (error: any) {
-        console.error("Error joining stream:", error);
-        toast.error(`Failed to join stream: ${error.message || "Unknown error"}`);
+        setViewerRoomUrl(apiRoomUrl);
+        setShowStreamingModal(true);
+        toast.success("Joining stream...");
+    } catch (error) {
+        console.error("Error preparing stream modal:", error);
+        toast.error("Failed to prepare the stream view.");
         setViewerRoomUrl(null);
         setShowStreamingModal(false);
     } finally {
@@ -324,7 +340,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
               <span className="text-lg font-semibold text-gray-800">
                 {chatData?.groupName || courseName} 
               </span>
-               {isStreamActive && user?._id !== instructorId && !showStreamingModal && (
+               {isApiStreamActive && user?._id !== instructorId && !showStreamingModal && (
                  <button 
                     onClick={handleJoinStream}
                     disabled={isJoiningStream}

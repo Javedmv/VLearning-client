@@ -69,12 +69,12 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // New state for tracking active streams
   const [activeStreams, setActiveStreams] = useState<ActiveStreamsMap>(new Map());
 
-  const handleForceLogout = (data: { reason: string }) => {
+  const handleForceLogout = async (data: { reason: string }) => {
     console.log("Force logout received:", data);
     toast.error(data.reason || "You have been logged out by an administrator");
     
     // Dispatch logout action
-    dispatch(logout());
+    await dispatch(logout());
     
     // Disconnect socket
     if (socket) {
@@ -85,7 +85,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    if (!user?._id || !SOCKET_URL || (user.role !== "instructor" && user.role !== "student")) return;
+    if (!user?._id || !SOCKET_URL ) return;
 
     const newSocket = io(SOCKET_URL, {
       query: { userId: user._id },
