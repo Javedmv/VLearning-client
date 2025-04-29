@@ -9,6 +9,7 @@ import {
   MapPin,
   GraduationCap
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Footer:React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -46,36 +47,24 @@ const Footer:React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              {['Courses', 'About Us', 'Instructor', 'Pricing', 'Blog', 'Contact'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="hover:text-blue-400 transition-colors text-sm">
-                    {item}
-                  </a>
+              {[
+                { name: 'Courses', href: '/course' },
+                { name: 'About Us', href: '/about-us' },
+                { name: 'Pricing', href: '/pricing' },
+                { name: 'Contact Us', href: '/contact-us' }
+              ].map((link) => (
+                <li key={link.name}>
+                  <Link
+                    to={link.href}
+                    className="hover:text-blue-400 transition-colors text-sm text-white"
+                  >
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Popular Courses */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Popular Courses</h3>
-            <ul className="space-y-2">
-              {[
-                'Web Development',
-                'Data Science',
-                'Machine Learning',
-                'Digital Marketing',
-                'UI/UX Design',
-                'Mobile Development'
-              ].map((course) => (
-                <li key={course}>
-                  <a href="#" className="hover:text-blue-400 transition-colors text-sm">
-                    {course}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
 
           {/* Contact Info */}
           <div>

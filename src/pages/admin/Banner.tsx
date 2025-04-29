@@ -4,12 +4,21 @@ import { Banner } from "../../types/Banner";
 import { configMultiPart, config } from "../../common/configurations";
 import { commonRequest, URL } from "../../common/api";
 import toast from "react-hot-toast";
+import { stringifyMeta } from "../../common/constants";
+import { Meta } from "../../types/Iothers";
+import Pagination from '../../components/common/Pagination';
 
 const BannerComponent :React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [banners, setBanners] = useState<Banner[]>([]);
     const [isEditing, setIsEditing] = useState(false);
     const [editBannerId, setEditBannerId] = useState("");
+    const [meta,setMeta] = useState({
+        total: 0,
+        page: 1,
+        limit: 4,
+        totalPages: 0,
+    })
 
     const [newBanner, setNewBanner] = useState<Omit<Banner, '_id'>>({
     title: '',
@@ -22,21 +31,23 @@ const BannerComponent :React.FC = () => {
 
     const [previewImage, setPreviewImage] = useState<string>('');
 
-    const fetchBanners = async () => {
+    const fetchBanners = async (meta:Meta) => {
         try {
-            const response = await commonRequest('GET',`${URL}/auth/all-banner`,{}, config);
+            const queryParams = new URLSearchParams(stringifyMeta(meta)).toString();
+            const response = await commonRequest('GET',`${URL}/auth/all-banner?${queryParams}`,{}, config);
             if(!response.success){
                 toast.error(response?.message);
                 return;
             }
-            setBanners(response?.data);
+            setBanners(response?.data?.banner);
+            setMeta(response?.data?.meta);
         } catch (error) {
             console.log(error,"failed to fetch from server");
         }
     }
 
     useEffect(() => {
-        fetchBanners();
+        fetchBanners(meta);
     }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +94,7 @@ const BannerComponent :React.FC = () => {
 
             if(response?.success){
                 toast.success(response.message)
-                fetchBanners();
+                fetchBanners(meta);
             }    
         } catch (error) {
             console.error("Upload error:", error);
@@ -189,7 +200,7 @@ const BannerComponent :React.FC = () => {
             if (response?.success) {
                 console.log(response)
                 toast.success(response.message);
-                fetchBanners();
+                fetchBanners(meta);
             }
         } catch (error) {
             console.error("handleEditBannerButton error:", error);
@@ -228,7 +239,15 @@ const BannerComponent :React.FC = () => {
             console.error("handleEditBannerCancelButton error:", error);
         }
     };
-    
+
+    const handlePageChange = (page: number) => {
+        const newMeta = {
+          ...meta,
+          page
+        };
+        setMeta(newMeta);
+        fetchBanners(newMeta);
+    }
     
 
     return (
@@ -376,11 +395,11 @@ const BannerComponent :React.FC = () => {
             {/* Banner List */}
             <div className="grid grid-cols-2 gap-6">
                 
-            {banners.length === 0 ? (
+            {banners?.length === 0 ? (
                 <div className="bg-gray-300 rounded-lg shadow-md p-6 text-center">
                     <h2 className="text-xl font-semibold">No Banners Found</h2>
                 </div>
-            ) : (banners.map((banner) => (
+            ) : (banners?.map((banner) => (
                 <div key={banner?._id} className="bg-gray-300 rounded-lg shadow-md overflow-hidden">
                     {typeof banner?.imageUrl === "string" && banner?.imageUrl && (
                         <div className="aspect-w-16 aspect-h-9 relative group">
@@ -441,6 +460,11 @@ const BannerComponent :React.FC = () => {
                  )))
                 }
             </div>
+                <Pagination
+                currentPage={meta.page}
+                totalPages={meta.totalPages}
+                onPageChange={handlePageChange}
+              />
         </div>
         </div>
     </div>

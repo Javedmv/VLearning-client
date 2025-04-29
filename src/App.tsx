@@ -49,8 +49,8 @@ const ContactUs = React.lazy(() => import('./pages/common/ContactUs'));
 // Role-Based Redirect Component
 const RoleBasedRedirect = ({ user }: { user: TOBE }) => {
   if (!user) return null;
-  if (user.isNewUser) return <Navigate to="/user-form" replace />;
-  if (user.role === 'admin') return <Navigate to="/admin" replace />;
+  if (user?.isNewUser) return <Navigate to="/user-form" replace />;
+  if (user?.role === 'admin') return <Navigate to="/admin" replace />;
   return null;
 };
 

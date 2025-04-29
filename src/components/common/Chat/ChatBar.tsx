@@ -65,7 +65,7 @@ interface Chat {
 }
 
 const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
-  const { user } = useSelector((state: RootState) => state.user);
+  const { user } = useSelector((state: RootState) => state?.user);
 
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -127,8 +127,8 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
         if (messagesResponse.success && messagesResponse.data) {
           setChatMessages(messagesResponse.data);
           if (messagesResponse.data.some((msg: Message) => 
-               (typeof msg.sender === 'string' ? msg.sender !== user._id : msg.sender?._id !== user._id) &&
-               (!msg.recieverSeen || !msg.recieverSeen.includes(user._id))
+               (typeof msg.sender === 'string' ? msg.sender !== user?._id : msg.sender?._id !== user?._id) &&
+               (!msg.recieverSeen || !msg.recieverSeen.includes(user?._id))
              ))
            {
             markMessagesAsSeen(chatId);
@@ -177,7 +177,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   const markMessagesAsSeen = async (chatId: string) => {
     if (!chatId || !user?._id) return;
     try {
-      await commonRequest("PUT", `${URL}/chat/mark-seen`, { chatId, userId: user._id }, config);
+      await commonRequest("PUT", `${URL}/chat/mark-seen`, { chatId, userId: user?._id }, config);
     } catch (error) {
       console.error("Error marking messages as seen:", error);
     }
@@ -187,7 +187,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
   useEffect(() => {
     if (socket && chatData?._id) {
-      socket.emit("join", { chatId: chatData._id, userId: user._id });
+      socket.emit("join", { chatId: chatData._id, userId: user?._id });
 
       const handleNewMessage = (message: Message) => {
          if (message.chatId !== chatData._id) return;
@@ -313,11 +313,11 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
   const isCurrentUserMessage = (msg: Message): boolean => {
     const senderId = typeof msg.sender === "string" ? msg.sender : msg.sender?._id;
-    return senderId === user._id;
+    return senderId === user?._id;
   };
 
   const getTypingMessage = () => {
-    const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chatData?._id && u.userId !== user._id);
+    const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chatData?._id && u.userId !== user?._id);
     if (currentChatTypingUsers.length === 0) return "";
     if (currentChatTypingUsers.length === 1) return `${currentChatTypingUsers[0]?.username} is typing...`;
     if (currentChatTypingUsers.length === 2) return `${currentChatTypingUsers[0]?.username} and ${currentChatTypingUsers[1]?.username} are typing...`;
@@ -373,7 +373,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
             </div>
           </div>
 
-          {typingUsers.length > 0 && typingUsers.some(u => u.chatId === chatData?._id && u.userId !== user._id) && (
+          {typingUsers.length > 0 && typingUsers.some(u => u.chatId === chatData?._id && u.userId !== user?._id) && (
             <div className="text-xs text-gray-600 italic mb-2 flex-shrink-0">
               {getTypingMessage()}
             </div>

@@ -8,6 +8,7 @@ import { teach } from "../../redux/actions/user/userAction";
 import trimValuesToFormData from "../../common/trimValues";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../../components/home/Navbar";
 
 interface FormValues {
     profession?: string;
@@ -56,6 +57,8 @@ const Teach: React.FC = () => {
   };
   
     return (
+    <>
+      <Navbar User={user}/>
       <div className="min-h-screen bg-gray-100 py-12">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8">
           <div className="text-center mb-12">
@@ -186,6 +189,7 @@ const Teach: React.FC = () => {
             />
         </Modal>
       </div>
+    </>
     );
 }
 

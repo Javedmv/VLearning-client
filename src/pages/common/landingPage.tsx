@@ -49,7 +49,7 @@ const LandingPage: React.FC = () => {
 
 
       {/* High Priority Banner */}
-      {highPriorityBanner.length > 0 && (
+      {highPriorityBanner?.length > 0 && (
         <Carousel banner={highPriorityBanner} navigationType="dots" />
       )}
 
