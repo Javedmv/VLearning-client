@@ -197,18 +197,23 @@ const router = (user: TOBE) =>
       },
       {
         path: 'my-learnings',
-        element: (
+        element: (user ? (
           <Suspense fallback={<div>Loading...</div>}>
             <MyLearnings />
-          </Suspense>
+          </Suspense>):
+          <Navigate to="/" replace />
         ),
       },
       {
         path: 'my-learnings/course/:id',
-        element: (
-          <Suspense fallback={<div>Loading...</div>}>
-            <LearningCourseDetail />
-          </Suspense>
+        element:  (
+          user ? (
+            <Suspense fallback={<div>Loading...</div>}>
+              <LearningCourseDetail />
+            </Suspense>
+          ) : (
+            <Navigate to="/" replace />
+          )
         ),
       },
       {

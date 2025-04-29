@@ -47,7 +47,7 @@ const CourseHomePage: React.FC = () => {
         config
       );
       setCourses(res.data);
-      setMeta(res.meta); // Update pagination metadata
+      setMeta(res.meta);
     } catch (error) {
       console.error("Failed to fetch courses", error);
     }

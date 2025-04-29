@@ -58,7 +58,7 @@ interface ChatHistoryProps {
 }
 
 export function ChatHistory({ chat }: ChatHistoryProps) {
-  const { user } = useSelector((state: RootState) => state.user);
+  const { user } = useSelector((state: RootState) => state?.user);
   const {
     socket,
     typingUsers,
@@ -81,8 +81,8 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const instructorName = user.username;
-  const instructorId = user._id;
+  const instructorName = user?.username;
+  const instructorId = user?._id;
 
   const isStreamActiveInContext = activeStreams?.has(chat?._id);
 
@@ -250,12 +250,12 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   const getSenderName = (message: Message): string => {
     const senderId = typeof message.sender === "string" ? message.sender : message.sender?._id;
 
-    if (senderId === user._id) {
+    if (senderId === user?._id) {
       return "You";
     }
 
-    if (typeof message.sender === "object" && message.sender) {
-        return message.sender.username || `${message.sender.firstName || ''} ${message.sender.lastName || ''}`.trim() || `User-${senderId?.substring(0,4)}`;
+    if (typeof message?.sender === "object" && message?.sender) {
+        return message?.sender?.username || `${message.sender?.firstName || ''} ${message.sender?.lastName || ''}`.trim() || `User-${senderId?.substring(0,4)}`;
     }
     if(message.senderName) return message.senderName;
 
@@ -288,11 +288,11 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
   };
 
   const getTypingMessage = () => {
-    const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chat?._id && u.userId !== user._id);
+    const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chat?._id && u.userId !== user?._id);
     if (currentChatTypingUsers.length === 0) return "";
-    if (currentChatTypingUsers.length === 1) return `${currentChatTypingUsers[0].username} is typing...`;
+    if (currentChatTypingUsers.length === 1) return `${currentChatTypingUsers[0]?.username} is typing...`;
     if (currentChatTypingUsers.length === 2)
-      return `${currentChatTypingUsers[0].username} and ${currentChatTypingUsers[1].username} are typing...`;
+      return `${currentChatTypingUsers[0]?.username} and ${currentChatTypingUsers[1]?.username} are typing...`;
     return `${currentChatTypingUsers.length} people are typing...`;
   };
 
@@ -399,7 +399,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
             className="flex items-center text-sm text-gray-500 hover:text-gray-700 hover:underline transition-colors duration-200"
           >
             <span>{Array.isArray(chat.users) ? chat.users.length : 0} participants</span>
-            {typingUsers.filter((u) => u.chatId === chat?._id && u.userId !== user._id).length > 0 && (
+            {typingUsers.filter((u) => u.chatId === chat?._id && u.userId !== user?._id).length > 0 && (
               <span className="ml-2 italic text-gray-600 animate-pulse">
                 • {getTypingMessage()}
               </span>
@@ -452,7 +452,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           ) : (
             messages.map((message, index) => {
               const senderId = typeof message.sender === "string" ? message.sender : message.sender?._id;
-              const isOwnMessage = senderId === user._id;
+              const isOwnMessage = senderId === user?._id;
 
               const prevSender = index > 0 ? messages[index - 1].sender : null;
               const prevSenderId = prevSender ? (typeof prevSender === "string" ? prevSender : (typeof prevSender === 'object' ? prevSender?._id : null)) : null;

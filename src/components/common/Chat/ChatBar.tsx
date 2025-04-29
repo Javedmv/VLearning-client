@@ -289,7 +289,7 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
 
     if (senderId === user?._id) return user?.username || "You";
     if (msg.senderName) return msg.senderName;
-    if (senderObj?.username) return senderObj.username;
+    if (senderObj?.username) return senderObj?.username;
     if (senderObj?.firstName) return `${senderObj.firstName} ${senderObj.lastName || ''}`.trim();
     
     const member = participants.find((p) => p._id === senderId);
@@ -319,8 +319,8 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   const getTypingMessage = () => {
     const currentChatTypingUsers = typingUsers.filter((u) => u.chatId === chatData?._id && u.userId !== user._id);
     if (currentChatTypingUsers.length === 0) return "";
-    if (currentChatTypingUsers.length === 1) return `${currentChatTypingUsers[0].username} is typing...`;
-    if (currentChatTypingUsers.length === 2) return `${currentChatTypingUsers[0].username} and ${currentChatTypingUsers[1].username} are typing...`;
+    if (currentChatTypingUsers.length === 1) return `${currentChatTypingUsers[0]?.username} is typing...`;
+    if (currentChatTypingUsers.length === 2) return `${currentChatTypingUsers[0]?.username} and ${currentChatTypingUsers[1]?.username} are typing...`;
     return `${currentChatTypingUsers.length} people are typing...`;
   };
 

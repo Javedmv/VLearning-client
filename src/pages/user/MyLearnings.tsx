@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Clock, PlayCircle } from 'lucide-react';
+import { BookOpen, PlayCircle } from 'lucide-react';
 import Navbar from '../../components/home/Navbar';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
@@ -8,24 +8,36 @@ import { config } from '../../common/configurations';
 import toast from 'react-hot-toast';
 import { IEnrollment } from '../../types/Enrollments';
 import { Link, useNavigate } from 'react-router-dom';
+import Pagination from '../../components/common/Pagination';
+import { Meta } from '../../types/Iothers';
+import { stringifyMeta } from '../../common/constants';
 
 const MyLearnings: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const [courses, setCourses] = useState<IEnrollment[]>([]);
   const [imageUrls, setImageUrls] = useState<{ [key: string]: string }>({});
-  const [loading, setLoading] = useState(true); // New loading state
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [meta, setMeta] = useState<Meta>({
+    total: 0,
+    page: 1,
+    limit: 6,
+    totalPages: 0,
+  });
+  
 
-  const fetchAllUserCourses = async () => {
+  const fetchAllUserCourses = async (currentMeta: Meta) => {
     try {
       setLoading(true);
-      const res = await commonRequest('GET', `${URLS}/course/my-learning`, {}, config);
+      const queryParams = new URLSearchParams(stringifyMeta(currentMeta)).toString();
+      const res = await commonRequest('GET', `${URLS}/course/my-learning?${queryParams}`, {}, config);
       if (!res.success) {
         toast.error(res.message || "Sorry, something went wrong.");
         return;
       }
       if (res?.success && res.data) {
-        setCourses(res.data);
+        setCourses(res.data.updatedEnrollments);
+        setMeta(res.data.meta);
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -35,7 +47,7 @@ const MyLearnings: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchAllUserCourses();
+    fetchAllUserCourses(meta);
   }, []);
 
   // Convert File objects to URLs
@@ -72,6 +84,15 @@ const MyLearnings: React.FC = () => {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    const newMeta = {
+      ...meta,
+      page
+    };
+    setMeta(newMeta);
+    fetchAllUserCourses(newMeta); // Pass the new meta directly
+  }
+
   // Shimmer Skeleton Loader Component
   const ShimmerCard = () => (
     <div className="bg-gray-200 animate-pulse rounded-xl shadow-md overflow-hidden">
@@ -106,7 +127,9 @@ const MyLearnings: React.FC = () => {
               <ShimmerCard key={index} />
             ))}
           </div>
+          
         ) : courses.length > 0 ? (
+          <>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((enrollment: IEnrollment) => (
               <div
@@ -195,10 +218,17 @@ const MyLearnings: React.FC = () => {
               </div>
             ))}
           </div>
+          
+        </>
         ) : (
           <div className="text-center text-gray-700 font-semibold text-lg">No Purchased Courses</div>
         )}
       </div>
+      <Pagination
+          currentPage={meta?.page}
+          totalPages={meta?.totalPages}
+          onPageChange={handlePageChange}
+        />
     </>
   );
 };

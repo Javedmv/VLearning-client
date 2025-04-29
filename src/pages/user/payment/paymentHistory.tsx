@@ -7,22 +7,36 @@ import { Payment } from '../../../types/Payment';
 import Navbar from '../../../components/home/Navbar';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../redux/store';
+import { Meta } from '../../../types/Iothers';
+import { stringifyMeta } from '../../../common/constants';
+import Pagination from '../../../components/common/Pagination';
 
 const PaymentHistory: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { user } = useSelector((state: RootState) => state.user);
+  const [meta,setMeta] = useState<Meta>({
+    total: 0,
+    page: 1,
+    limit: 6,
+    totalPages: 0,
+  });
 
   // Fetch payment history
-  const fetchPayments = async () => {
+  const fetchPayments = async (currentMeta:Meta) => {
     try {
-      const res = await commonRequest('GET',`${URL}/payment/history/${user._id}`, {}, config);
+      const queryParams = new URLSearchParams(stringifyMeta(currentMeta)).toString();
+      const res = await commonRequest('GET',`${URL}/payment/history?${queryParams}`, {}, config);
 
       if (!res.success) {
         toast.error(res.message || 'Failed to fetch payment history');
         return;
       }
-      setPayments(res.data);
+      if (res?.success && res.data) {
+        setPayments(res.data.payments);
+        setMeta(res.data.meta);
+      }
+      
     } catch (error) {
       toast.error('Error fetching payment history');
       console.error('Payment History Fetch Error:', error);
@@ -32,7 +46,7 @@ const PaymentHistory: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchPayments();
+    fetchPayments(meta);
   }, []);
 
   // Format Date
@@ -52,6 +66,15 @@ const PaymentHistory: React.FC = () => {
       minimumFractionDigits: 2,
     }).format(amount / 100); // Assuming amount is in cents
   };
+
+  const handlePageChange = (page: number) => {
+    const newMeta = {
+      ...meta,
+      page
+    };
+    setMeta(newMeta);
+    fetchPayments(newMeta);
+  }
 
   return (
     <>
@@ -121,6 +144,11 @@ const PaymentHistory: React.FC = () => {
             ))}
           </div>
         )}
+         <Pagination
+          currentPage={meta?.page}
+          totalPages={meta?.totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
     </>
   );
