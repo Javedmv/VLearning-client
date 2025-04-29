@@ -4,7 +4,9 @@ import { CategoryList } from '../../components/admin/Category/categoryList';
 import { commonRequest, URL } from '../../common/api';
 import { config, configMultiPart } from '../../common/configurations';
 import toast from 'react-hot-toast';
-import { TOBE } from '../../common/constants';
+import { stringifyMeta } from '../../common/constants';
+import { Meta } from '../../types/Iothers';
+import Pagination from '../../components/common/Pagination';
 
 interface Category {
   _id?: string;
@@ -27,22 +29,31 @@ export interface DisplayCategory {
 
 const CategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<DisplayCategory[]>([]);
+  const [meta,setMeta] = useState({
+    total: 0,
+    page: 1,
+    limit: 8,
+    totalPages: 0,
+  });
 
-  const fetchCategory = async () => {
+  const fetchCategory = async (currentMeta:Meta) => {
     try {
-      const res = await commonRequest('GET', `${URL}/course/all-category`, {}, config);
-      const fetchedCategories: DisplayCategory[] = res.data.map((cat: TOBE) => ({
+      const queryParams = new URLSearchParams(stringifyMeta(currentMeta)).toString();
+      const res = await commonRequest('GET', `${URL}/course/all-category?${queryParams}`, {}, config);
+      const fetchedCategories: DisplayCategory[] = res.data.categorys.map((cat: DisplayCategory) => ({
         ...cat,
-        imageUrl: cat.imageUrl || '', // Ensure imageUrl is a string
+        imageUrl: cat.imageUrl || '',
         count: cat.count || 0,
       }));
       setCategories(fetchedCategories);
+      setMeta(res.data.meta);
     } catch (error) {
       console.error('Failed to fetch categories: in ADMIN/INSTRUCTOR', error);
     }
   };
+
   useEffect(() => {
-    fetchCategory();
+    fetchCategory(meta);
   }, []);
 
   const handleAddCategory = async (newCategory: Category) => {
@@ -69,7 +80,7 @@ const CategoriesPage: React.FC = () => {
         //   count: 0,
         // };
         // setCategories([addedCategory,...categories]);
-        fetchCategory();
+        fetchCategory(meta);
         toast.success(response.message || 'Category added');
       }
     } catch (error: any) {
@@ -78,7 +89,14 @@ const CategoriesPage: React.FC = () => {
     }
   };
 
-  
+  const handlePageChange = (page: number) => {
+    const newMeta = {
+      ...meta,
+      page
+    };
+    setMeta(newMeta);
+    fetchCategory(newMeta); // Pass the new meta directly
+  }
 
   return (
     <div className="p-6">
@@ -90,13 +108,18 @@ const CategoriesPage: React.FC = () => {
           {categories.length > 0 ? (
             <CategoryList 
             categories={categories} 
-            onRefetch={fetchCategory} 
+            onRefetch={() => fetchCategory(meta)}
           />
           ) : (
             'Category does not exist, please add one.'
           )}
         </div>
       </div>
+      <Pagination
+        currentPage={meta.page}
+        totalPages={meta.totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 };
