@@ -28,7 +28,7 @@ const Navbar: React.FC<NavbarProps> = ({ User }) => {
     try {
       await dispatch(logout()).then(() => {
         toast.success("Logout Successfully");
-        navigate("/");
+        navigate("/",{replace:true});
       })
     } catch (error) {
       console.error(error, "ERROR in HANDLE LOGOUT");

@@ -8,7 +8,6 @@ import { RootState } from "../../../redux/store";
 import { toast } from "react-hot-toast";
 import ParticipantsModal from "../../common/Chat/ParticipantsModal";
 import StreamingModal from "../../common/Chat/StreamingModal";
-import type { StreamingModalProps } from "../../common/Chat/StreamingModal";
 import EmojiPicker from 'emoji-picker-react';
 import { TOBE } from "../../../common/constants";
 
@@ -386,6 +385,19 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
       </div>
     );
   }
+  
+  if (!user) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-200 to-indigo-50">
+        <div className="text-center p-8 rounded-2xl bg-white/50 backdrop-blur-sm shadow-xl">
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">Loading...</h3>
+          <p className="text-gray-600 text-lg">
+            Please wait while we load your user information.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const isCurrentlyStreaming = !!activeRoomUrl;
 
@@ -407,7 +419,7 @@ export function ChatHistory({ chat }: ChatHistoryProps) {
           </button>
         </div>
         <div className="flex space-x-2">
-          {user.role === "instructor" && (
+          {user?.role === "instructor" && (
             <button
               onClick={isCurrentlyStreaming ? () => handleStopStream() : handleStartStream}
               disabled={isStreamLoading}

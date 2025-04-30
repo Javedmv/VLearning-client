@@ -28,33 +28,41 @@ const Students: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [meta, setMeta] = useState({page: 1, limit: 6, total: 0, totalPages: 0});
   const { socket } = useSocketContext();
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   
   const fetchStudents = async () => {
     try {
+      setIsSearching(true);
       const queryParams = new URLSearchParams({
         page: meta.page.toString(),
-        limit: meta.limit.toString()
+        limit: meta.limit.toString(),
+        search: searchTerm.toString(),
       });
 
       const res = await commonRequest("GET", `${URL}/auth/students?${queryParams}`, null, config);
-      console.log(res.data)
-      setStudents(() => [
-        ...res.data
-      ]);
+      console.log(res.data);
+      setStudents(res.data);
       setMeta(prev => ({
         ...prev,
         total: res.total,
         totalPages: res.totalPages
       }));
-
     } catch (error) {
       console.error("Failed to fetch students: in ADMIN/STUDENTS", error);
+    } finally {
+      setIsSearching(false);
     }
   };
   
+  // Set up debounced search handler
   useEffect(() => {
-    fetchStudents();
-  }, [meta.page]);
+    const handler = setTimeout(() => {
+      fetchStudents();
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm, meta.page, meta.limit]);
 
   const handlePageChange = (page: number) => {
     try {
@@ -85,7 +93,6 @@ const Students: React.FC = () => {
         );
 
         console.log("socket", socket);
-        
         
         // If blocking a user, emit socket event to force logout
         if (shouldBlock && socket) {
@@ -121,13 +128,12 @@ const Students: React.FC = () => {
               type="text"
               placeholder="Search students..."
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
             <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <Filter className="w-5 h-5" />
-            <span>Filter</span>
-          </button>
+          {isSearching && <span className="text-sm text-gray-500">Searching...</span>}
         </div>
 
         <div className="overflow-x-auto">

@@ -22,7 +22,7 @@ const CourseHomePage: React.FC = () => {
   });
   const [filters, setFilters] = useState<TOBE>({
     search: "",
-    sortBy: "relevance", // Default sort
+    sortBy: "relevance",
     categories: [],
     page: 1,
   });

@@ -31,13 +31,18 @@ const Instructors: React.FC = () => {
   const { user } = useOutletContext<{ user: TOBE }>();
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [meta, setMeta] = useState({page: 1, limit: 8, total: 0, totalPages: 0});
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
 
   const fetchInstructor = async () => {
     try {
+      setIsSearching(true);
       const queryParams = new URLSearchParams({
         page: meta.page.toString(),
-        limit: meta.limit.toString()
+        limit: meta.limit.toString(),
+        search: searchTerm.toString(),
+
       });
       const res = await commonRequest('GET', `${URL}/auth/instructors?${queryParams}`, {}, config);
       console.log(res.data,"data from instructor")
@@ -50,12 +55,18 @@ const Instructors: React.FC = () => {
 
     } catch (error) {
       console.error('Failed to fetch students: in ADMIN/INSTRUCTOR', error);
+    } finally {
+      setIsSearching(false);
     }
   };
 
   useEffect(() => {
-    fetchInstructor();
-  }, [meta.page]);
+    const handler = setTimeout(() => {
+      fetchInstructor();
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm, meta.page, meta.limit]);
 
   const handleBlockUnblock = async (instructorId: string, shouldBlock: boolean) => {
     try {
@@ -119,15 +130,18 @@ const Instructors: React.FC = () => {
       <h2 className="text-2xl font-bold mb-4">Instructors</h2>
       <p className="text-gray-600 mb-6">Manage your course instructors</p>
 
-      <div className="flex mb-4">
-        {/* Filter component can be added here */}
-        <input
-          type="text"
-          placeholder="Filter instructors..."
-          className="border px-3 py-2 rounded-md w-full"
-          // value={meta.search}
-          // onChange={(e) => handleSearchChange(e.target.value)}
-        />
+      <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+          <div className="relative w-64">
+            <input
+              type="text"
+              placeholder="Search Instructor..."
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          </div>
+          {isSearching && <span className="text-sm text-gray-500">Searching...</span>}
       </div>
 
       <div className="overflow-x-auto">
