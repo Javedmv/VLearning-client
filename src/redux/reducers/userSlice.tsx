@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import {  loginUser, signUpUser, getUserDataFirst ,logout ,userForm, teach, reapplyInstructor, googleLoginUser } from "../actions/user/userAction";
 
 const initialState = {
-    loading: false as Boolean,
+    loading: false as boolean,
     user : null as any | null,
     error : null as any | null
 }

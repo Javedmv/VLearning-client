@@ -8,7 +8,7 @@ interface LessonListProps {
   lessons?: Lesson[];
   onSelectLesson?: (lesson: Lesson) => void; // No change needed here
   currentLessonId?: string;
-  isEnrolled: Boolean;
+  isEnrolled: boolean;
   courseId: string;
 }
 

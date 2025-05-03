@@ -82,7 +82,7 @@ const BannerComponent :React.FC = () => {
                 formData.append('files.banner', fileInputRef.current.files[0]); // Attach the file
             }
             
-            for (let [key, value] of formData.entries()) {
+            for (const [key, value] of formData.entries()) {
                 console.log(`${key}: ${value}`);
             }
 
@@ -186,7 +186,7 @@ const BannerComponent :React.FC = () => {
                 formData.append('files.banner', fileInputRef.current.files[0]);
             }
 
-            for (let [key, value] of formData.entries()) {
+            for (const [key, value] of formData.entries()) {
                 console.log(`${key}: ${value}`);
             }
 

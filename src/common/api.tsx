@@ -1,4 +1,5 @@
 import axios, {AxiosError, AxiosRequestConfig, Method} from "axios";
+import { TOBE } from "./constants";
 
 export const URL = import.meta.env.VITE_REACT_APP_BASE_URL
 // export const URL = http://localhost:3000
@@ -47,7 +48,7 @@ export const commonReduxRequest = async (
     body?: any,
     config: AxiosRequestConfig = {}
 ): Promise<any> => {
-    let requestConfig: AxiosRequestConfig = {
+    const requestConfig: AxiosRequestConfig = {
         method,
         url: route,
         data: body,
@@ -59,7 +60,7 @@ export const commonReduxRequest = async (
         const response = await appInstance(requestConfig);
         console.log(response)
         return response.data; // Return only the response data
-    } catch (error: any) {
+    } catch (error: TOBE) {
         console.error("Request failed with error in commonReduxRequest in redux/api:", error);
         if (rejectWithValue) {
             return rejectWithValue(
