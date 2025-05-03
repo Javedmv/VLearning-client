@@ -105,7 +105,7 @@ export const uploadLessonsToS3 = async (courseData: CourseData) => {
 export const uploadEditedLessonTos3 = async (course: TOBE) => {
   try {
     const updatedLesson: TOBE[] = [...course.courseContent.lessons];
-    const { thumbnail, title } = course?.basicDetails;
+    const { thumbnail, title } = course.basicDetails;
 
     // Handle thumbnail upload
     if (thumbnail instanceof File) {

@@ -418,7 +418,7 @@ const BannerComponent :React.FC = () => {
                             </button>
                             
                             <button
-                                onClick={() => handleDeleteBanner(banner?._id!)}
+                                onClick={() => banner?._id && handleDeleteBanner(banner?._id)}
                                 className="p-2 bg-white rounded-full hover:bg-gray-100 transform hover:scale-105 transition-transform"
                                 title="Delete Category"
                             >
@@ -442,7 +442,7 @@ const BannerComponent :React.FC = () => {
                                 {banner?.priority}
                             </span>
                         </div>
-                        <button className="flex items-center justify-between" onClick={() => handleToggleStatus(banner?._id!,banner.status!)}>
+                        <button className="flex items-center justify-between" onClick={() => banner?._id && handleToggleStatus(banner?._id,banner.status)}>
                             <span className={`px-2 py-1 rounded-full text-sm mx-2 hover:bg-slate-500 hover:text-sm ${
                                 banner.status === true ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                             }`}>

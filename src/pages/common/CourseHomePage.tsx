@@ -109,7 +109,8 @@ const CourseHomePage: React.FC = () => {
                           }
                           alt={course?.basicDetails?.title}
                           className="w-full h-full object-cover"
-                          onClick={() => handleCourseClick(course?._id!)}
+                          onClick={() => course?._id && handleCourseClick(course._id)}
+
                         />
                       </div>
                       <div className="p-6 flex-1 flex flex-col justify-between">
@@ -118,13 +119,13 @@ const CourseHomePage: React.FC = () => {
                             <div>
                               <h2
                                 className="text-xl font-semibold mb-2"
-                                onClick={() => handleCourseClick(course?._id!)}
+                                onClick={() => course?._id && handleCourseClick(course._id)}
                               >
                                 {course?.basicDetails?.title}
                               </h2>
                               <p
                                 className="text-gray-600 mb-4 line-clamp-4 overflow-hidden break-all"
-                                onClick={() => handleCourseClick(course?._id!)}
+                                onClick={() => course?._id && handleCourseClick(course._id)}
                               >
                                 {course?.basicDetails?.description}
                               </p>

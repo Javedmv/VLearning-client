@@ -163,7 +163,7 @@ const CourseDetailPage: React.FC = () => {
 
                   {/* Enroll Button */}
                   <button
-                    onClick={() => handlePayment(user?._id, courseData?._id!)}
+                    onClick={() => courseData?._id && handlePayment(user?._id, courseData?._id)}
                     className="px-6 py-3 bg-fuchsia-700 text-white font-semibold rounded-md shadow-md hover:bg-fuchsia-800 transition duration-300"
                   >
                     Enroll Now

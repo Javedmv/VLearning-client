@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Infinity, Play, Book, Globe, Tag } from 'lucide-react';
+import { Clock, Infinity as InfinityIcon, Play, Book, Globe, Tag } from 'lucide-react';
 import { CourseData } from '../../../types/Courses';
 
 interface PreviewProps {
@@ -112,7 +112,7 @@ const Preview: React.FC<PreviewProps> = ({ courseData, onBack, onSubmit }) => {
             <div className="text-sm text-gray-600 space-y-2">
               {pricing?.hasLifetimeAccess && (
                 <div className="flex items-center">
-                  <Infinity className="w-4 h-4 mr-2" />
+                  <InfinityIcon className="w-4 h-4 mr-2" />
                   <span>Lifetime Access</span>
                 </div>
               )}

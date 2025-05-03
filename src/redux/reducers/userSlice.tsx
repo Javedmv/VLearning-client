@@ -59,7 +59,7 @@ const userSlice = createSlice({
         .addCase(logout.pending,(state) => {
             state.loading = true;
         })
-        .addCase(logout.fulfilled, (state, {}) => {
+        .addCase(logout.fulfilled, (state, {payload}) => {
             state.loading = false;
             state.user = null;
             state.error = null;
@@ -85,7 +85,6 @@ const userSlice = createSlice({
             state.loading = true;
         })
         .addCase(teach.fulfilled, (state, {payload}) => {
-            console.log(payload,"payload in the rosponse teach")
             state.loading = false;
             state.error = null;
             state.user = payload;
@@ -99,7 +98,6 @@ const userSlice = createSlice({
             state.loading = true;
         })
         .addCase(reapplyInstructor.fulfilled, (state, {payload}) => {
-            console.log(payload,"payload in the rosponse reappy instrctor")
             state.loading = false;
             state.error = null;
             state.user = payload;
