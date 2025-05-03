@@ -13,7 +13,7 @@ interface LessonListProps {
 }
 
 
-const LessonList: React.FC<LessonListProps> = ({ lessons, onSelectLesson, currentLessonId,isEnrolled, courseId }) => {
+const LessonList: React.FC<LessonListProps> = ({ lessons,  currentLessonId,isEnrolled}) => {
 
   const navigate = useNavigate();
 

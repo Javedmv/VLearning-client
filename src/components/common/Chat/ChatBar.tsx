@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Image, FileText, Mic, Users, Smile, Cast, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Users, Smile, Cast, Loader2 } from "lucide-react";
 import { useSocketContext } from "../../../context/SocketProvider";
 import { commonRequest, URL } from "../../../common/api";
 import { config } from "../../../common/configurations";
@@ -81,13 +81,11 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
   const courseId = enrollment?.courseId?._id;
   const courseName = enrollment?.courseId?.title || "Course Chat";
   const instructorId = enrollment?.courseId?.instructorId;
-  const instructorName = `${enrollment?.courseId?.instructor?.firstName || ''} ${enrollment?.courseId?.instructor?.lastName || ''}`.trim();
 
   const {
     socket,
     handleTyping,
     typingUsers,
-    activeStreams,
   } = useSocketContext();
 
   const [isSending, setIsSending] = useState(false);
@@ -328,8 +326,6 @@ const ChatBar: React.FC<ChatBarProp> = ({ enrollment }) => {
     setInput(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
-
-  const isStreamActive = chatData?._id ? activeStreams?.has(chatData._id) : false;
 
   return (
     <div className="fixed bottom-4 right-4 z-40">

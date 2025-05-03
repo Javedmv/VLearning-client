@@ -4,7 +4,7 @@ import './App.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUserDataFirst } from './redux/actions/user/userAction';
 import { AppDispatch, RootState } from './redux/store';
-import future from './types/createBrowserConfig';
+import future from './types/createBrowserConfig.ts';
 
 // Lazy Loading Components
 const LandingPage = React.lazy(() => import('./pages/common/landingPage'));

@@ -59,7 +59,7 @@ const userSlice = createSlice({
         .addCase(logout.pending,(state) => {
             state.loading = true;
         })
-        .addCase(logout.fulfilled, (state, {payload}) => {
+        .addCase(logout.fulfilled, (state) => {
             state.loading = false;
             state.user = null;
             state.error = null;
