@@ -42,8 +42,6 @@ import ChatPage from './pages/instructor/ChatPage';
 import Transactions from './pages/admin/Transactions';
 import { TOBE } from './common/constants';
 import { SocketProvider } from './context/SocketProvider';
-import { commonRequest } from './common/api.tsx';
-import { config } from './common/configurations.ts';
 const EarningsPage = React.lazy(() => import('./pages/instructor/EarningsPage'));
 const AboutUs = React.lazy(() => import('./pages/common/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/common/ContactUs'));
@@ -270,11 +268,6 @@ const App = () => {
     if (!user) dispatch(getUserDataFirst());
   }, [user, dispatch]);
 
-  useEffect(() => {
-    commonRequest("GET", "https://welearning.online/test-cors", {}, config)
-      .then(data => console.log("CORS Test Success:", data))
-      .catch(error => console.error("CORS Test Error:", error));
-  }, []);
   return <RouterProvider router={router(user)} future={{ v7_startTransition: true }} />;
 };
 
