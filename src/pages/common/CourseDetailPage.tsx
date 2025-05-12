@@ -85,7 +85,9 @@ const CourseDetailPage: React.FC = () => {
       } else {
         const stripe = await loadStripe(import.meta.env.VITE_STRIPE_KEY!);
         
-        const response = await commonRequest("POST", `${URL}/payment/create-session`, { userId, courseId }, config);
+        const res = await commonRequest("POST", `${URL}/payment/create-session`, { userId, courseId }, config);
+
+        const { data: response, message } = res;
       
         if (!response?.success) { 
           toast.error(response?.message || "Something went wrong."); 
