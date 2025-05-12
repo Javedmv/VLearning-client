@@ -187,7 +187,7 @@ const router = (user: TOBE) =>
         path: 'payment',
         element: (
           <Suspense fallback={<div>Loading...</div>}>
-            <PaymentDashboard user={user} />
+            <PaymentDashboard />
           </Suspense>
         ),
         children: [

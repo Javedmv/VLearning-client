@@ -1,11 +1,15 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import { Outlet } from "react-router-dom";
+import { RootState } from "../../../redux/store";
 
 interface PaymentDashboardProps {
   user: any;
 }
 
-const PaymentDashboard: React.FC<PaymentDashboardProps> = ({ user }) => {
+const PaymentDashboard: React.FC = () => {
+  const { user } = useSelector((state: RootState) => state.user);
+
   if (!user) {
     return (
       <div className="text-center mt-10">
