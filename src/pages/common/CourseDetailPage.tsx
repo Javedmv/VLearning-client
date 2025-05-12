@@ -89,7 +89,7 @@ const CourseDetailPage: React.FC = () => {
 
         const { data: response, message } = res;
       
-        if (!response?.success) { 
+        if (!res?.success) { 
           toast.error(response?.message || "Something went wrong."); 
           return; 
         }
