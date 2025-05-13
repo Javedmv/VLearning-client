@@ -143,7 +143,7 @@ const DashboardHome: React.FC = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Enrollments</h2>
-            <Link to={"/enrollments"} className="text-sm text-gray-500 hover:underline">Show More</Link>
+            {/* <Link to={"/enrollments"} className="text-sm text-gray-500 hover:underline">Show More</Link> */}
           </div>
           <div className="space-y-4">
             {dashboardData.totalEnrollments > 0 ? (
