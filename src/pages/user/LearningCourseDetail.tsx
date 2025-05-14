@@ -126,7 +126,7 @@ const LearningCourseDetail: React.FC = () => {
         throw new Error("Missing required information");
       }
   
-      const url = `http://localhost:3000/course/generate-certificate/${enrollmentId}?username=${encodeURIComponent(user.username)}`;
+      const url = `https://welearning.online/course/generate-certificate/${enrollmentId}?username=${encodeURIComponent(user.username)}`;
       
       const response = await fetch(url, {
         method: 'GET',
